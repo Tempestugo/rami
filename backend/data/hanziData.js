@@ -5,6 +5,7 @@
  *   - Make Me a Hanzi (decomposition.txt)
  *   - CC-CEDICT (pinyin + meanings)
  *   - Official HSK wordlists (1–6+)
+ *   - Custom tagging for contexts 
  */
 
 const hanziData = [
