@@ -1,10 +1,14 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createRequire } from 'module';
 
-// Importa as funções da sua API (com a extensão .js obrigatória)
-import graphHandler from './api/graph/index.js';
-import charHandler from './api/graph/character/[id].js';
+// Truque para usar require() num projeto type: "module"
+const require = createRequire(import.meta.url);
+
+// Importa a sua API em modo de compatibilidade
+const graphHandler = require('./api/graph/index.js');
+const charHandler = require('./api/graph/character/[id].js');
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,7 +16,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 app.use(express.json());
 
-// 1. Configurar as rotas da API
+// 1. Liga as rotas da API
 app.get('/api/graph', graphHandler);
 app.get('/api/graph/character/:id', (req, res) => {
     req.query = req.query || {};
@@ -20,16 +24,16 @@ app.get('/api/graph/character/:id', (req, res) => {
     charHandler(req, res);
 });
 
-// 2. Servir o site React (Vite)
+// 2. Serve o site React gerado pelo Vite (Pasta dist)
 app.use(express.static(path.join(__dirname, 'dist')));
 
-// 3. Qualquer outra rota devolve o site (SPA)
+// 3. Qualquer outra rota (F5 na página) redireciona para o React
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
-// Ligar o servidor
+// A Hostinger define a porta dinamicamente
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`Servidor do Lumi a correr na porta ${PORT}`);
+    console.log(`Lumi Server a rodar na porta ${PORT}`);
 });
