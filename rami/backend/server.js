@@ -25,7 +25,8 @@ app.use('/api/phrases', phraseRoutes);
 
 // Serve React frontend in production
 if (process.env.NODE_ENV === 'production') {
-  const distPath = path.join(__dirname, '../frontend/dist');
+  // Ajuste do caminho onde o build do frontend cai:
+  const distPath = path.join(__dirname, '../dist');
   app.use(express.static(distPath));
   app.get('*', (req, res) => {
     res.sendFile(path.join(distPath, 'index.html'));

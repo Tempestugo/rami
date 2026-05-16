@@ -3,7 +3,7 @@
  * Handles all /api/graph requests. Delegates business logic to graphService.
  */
 
-const { buildGraph, getCharacterDetail, getAllTags } = require('../services/graphService');
+const { buildGraph, getCharacterDetail, getAllTags, expandNode } = require('../services/graphService');
 
 /**
  * GET /api/graph
@@ -13,9 +13,10 @@ function getGraph(req, res) {
   const maxHsk = parseInt(req.query.maxHsk) || 6;
   const context = req.query.context || null;
   const mode = req.query.mode || 'evo';
+  const rootsOnly = req.query.rootsOnly === 'true'; // A IA tinha esquecido isso!
 
   try {
-    const graph = buildGraph(maxHsk, context, mode);
+    const graph = buildGraph(maxHsk, context, mode, rootsOnly);
     res.json({ success: true, data: graph });
   } catch (err) {
     console.error('Graph build error:', err);
@@ -23,13 +24,13 @@ function getGraph(req, res) {
   }
 }
 
-function expandNode(req, res) {
+function expandNodeController(req, res) {
   const id = req.params.id;
   const mode = req.query.mode || 'evo';
   const maxHsk = parseInt(req.query.maxHsk) || 6;
 
   try {
-    const graph = expandNodeService(id, mode, maxHsk);
+    const graph = expandNode(id, mode, maxHsk);
     res.json({ success: true, data: graph });
   } catch (err) {
     console.error('Expand node error:', err);
@@ -57,4 +58,5 @@ function getTags(req, res) {
   res.json({ success: true, data: tags });
 }
 
-module.exports = { getGraph, getCharacter, getTags, expandNode };
+// Consertado a nomenclatura que estava quebrada
+module.exports = { getGraph, getCharacter, getTags, expandNode: expandNodeController };

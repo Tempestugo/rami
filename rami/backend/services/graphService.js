@@ -1,44 +1,30 @@
 /**
  * graphService.js
- * Business logic for graph node retrieval and edge building.
- * Decoupled from Express so it's independently testable.
  */
-
 const { hanziData } = require('../data/hanziData');
 
-/**
- * Returns all characters filtered by HSK level and optional semantic tag.
- * @param {number} maxHsk  - Maximum HSK level to include
- * @param {string|null} context - Semantic tag filter (e.g. 'cozinha', 'natureza')
- * @param {string} mode - Edge-building mode: 'dag' | 'evo' | 'sim'
- */
-function buildGraph(maxHsk = 6, context = null, mode = 'evo') {
-  // Step 1: Filter universe by HSK level
+function buildGraph(maxHsk = 6, context = null, mode = 'evo', rootsOnly = false) {
   let universe = hanziData.filter(n => n.hsk <= maxHsk);
 
-  // Step 2: Apply semantic tag filter (mock vector intersection)
+  // Filtro de contexto ou Modo tela limpa (Lazy Loading)
   if (context) {
     universe = universe.filter(n => n.tags.includes(context));
+  } else if (rootsOnly) {
+    const roots = ['一', '人', '木', '口', '水', '火', '日', '女'];
+    universe = universe.filter(n => roots.includes(n.id));
   }
 
   const activeIds = new Set(universe.map(n => n.id));
 
-  // Step 3: Build nodes
   const nodes = universe.map(n => ({
-    id: n.id,
-    pinyin: n.pinyin,
-    meaning: n.meaning,
-    hsk: n.hsk,
-    tags: n.tags,
+    id: n.id, pinyin: n.pinyin, meaning: n.meaning, hsk: n.hsk, tags: n.tags
   }));
 
-  // Step 4: Build edges depending on mode
   const edges = [];
   const seen = new Set();
 
   universe.forEach(n => {
     if (mode === 'dag') {
-      // Analytical: complex character → constituent radicals
       n.components.forEach(comp => {
         if (activeIds.has(comp)) {
           const key = `${n.id}>${comp}`;
@@ -46,7 +32,6 @@ function buildGraph(maxHsk = 6, context = null, mode = 'evo') {
         }
       });
     } else if (mode === 'evo') {
-      // Evolution: radical → derived characters
       universe.forEach(target => {
         if (target.components.includes(n.id)) {
           const key = `${n.id}>${target.id}`;
@@ -54,7 +39,6 @@ function buildGraph(maxHsk = 6, context = null, mode = 'evo') {
         }
       });
     } else if (mode === 'sim') {
-      // Visual similarity: visual parent → visual child (+ 1 stroke)
       n.visual_parents.forEach(vp => {
         if (activeIds.has(vp)) {
           const key = `${vp}>${n.id}`;
@@ -67,28 +51,55 @@ function buildGraph(maxHsk = 6, context = null, mode = 'evo') {
   return { nodes, edges };
 }
 
-/**
- * Returns full character data for a single character.
- */
+// ESSA FUNÇÃO ESTAVA FALTANDO COMPLETAMENTE NA IA
+function expandNode(id, mode, maxHsk = 6) {
+  let universe = hanziData.filter(n => n.hsk <= maxHsk);
+  const activeIds = new Set(universe.map(n => n.id));
+
+  const nodes = [];
+  const edges = [];
+  const n = universe.find(char => char.id === id);
+
+  if (!n) return { nodes, edges };
+
+  nodes.push({ id: n.id, pinyin: n.pinyin, meaning: n.meaning, hsk: n.hsk, tags: n.tags });
+
+  if (mode === 'dag') {
+    n.components.forEach(comp => {
+      if (activeIds.has(comp)) {
+        const child = universe.find(c => c.id === comp);
+        if (child) {
+          nodes.push({ id: child.id, pinyin: child.pinyin, meaning: child.meaning, hsk: child.hsk, tags: child.tags });
+          edges.push({ from: n.id, to: comp });
+        }
+      }
+    });
+  } else if (mode === 'evo') {
+    universe.forEach(target => {
+      if (target.components.includes(n.id)) {
+         nodes.push({ id: target.id, pinyin: target.pinyin, meaning: target.meaning, hsk: target.hsk, tags: target.tags });
+         edges.push({ from: n.id, to: target.id });
+      }
+    });
+  } else if (mode === 'sim') {
+    universe.forEach(target => {
+      if (target.visual_parents.includes(n.id)) {
+         nodes.push({ id: target.id, pinyin: target.pinyin, meaning: target.meaning, hsk: target.hsk, tags: target.tags });
+         edges.push({ from: n.id, to: target.id }); 
+      }
+    });
+  }
+
+  return { nodes, edges };
+}
+
 function getCharacterDetail(id) {
   return hanziData.find(n => n.id === id) || null;
 }
 
-/**
- * Returns all available semantic tags for the sidebar filter buttons.
- */
 function getAllTags() {
-  const db = getDb();
   const tagSet = new Set();
-  if (db) {
-    const rows = db.prepare('SELECT tags FROM characters').all();
-    rows.forEach(r => {
-      const tgs = JSON.parse(r.tags);
-      tgs.forEach(t => tagSet.add(t));
-    });
-  } else {
-    hanziData.forEach(n => n.tags.forEach(t => tagSet.add(t)));
-  }
+  hanziData.forEach(n => n.tags.forEach(t => tagSet.add(t)));
   return Array.from(tagSet).sort();
 }
 
