@@ -16,15 +16,20 @@ app.use('/api/graph', graphRoutes);
 app.use('/api/phrases', phraseRoutes);
 
 // Serve React frontend in production
+// __dirname = rami/backend, so dist is one level up in rami/frontend/dist
 if (process.env.NODE_ENV === 'production') {
-  const distPath = path.join(__dirname, '../frontend/dist');
+  const distPath = path.join(__dirname, '..', 'frontend', 'dist');
   app.use(express.static(distPath));
+  // Catch-all: return index.html for React Router (SPA)
   app.get('*', (req, res) => {
     res.sendFile(path.join(distPath, 'index.html'));
   });
 }
 
 app.listen(PORT, () => {
-  console.log(`🀄 Rami server running on port ${PORT}`);
-  console.log(`   Mode: ${process.env.NODE_ENV || 'development'}`);
+  console.log('Rami server running on port ' + PORT);
+  console.log('   Mode: ' + (process.env.NODE_ENV || 'development'));
+  if (process.env.NODE_ENV === 'production') {
+    console.log('   Serving static: ' + path.join(__dirname, '..', 'frontend', 'dist'));
+  }
 });

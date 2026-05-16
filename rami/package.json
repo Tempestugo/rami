@@ -4,9 +4,9 @@
   "description": "Rami - Hanzi Graph Explorer: Interactive mental mapping for Chinese character learning",
   "main": "backend/server.js",
   "scripts": {
-    "build": "cd frontend && npm install && npm run build && cd ../backend && npm install",
+    "build": "npm install --prefix frontend && npm run build --prefix frontend && npm install --prefix backend",
     "start": "node backend/server.js",
-    "dev": "concurrently \"cd backend && node server.js\" \"cd frontend && npm run dev\""
+    "dev": "concurrently \"node backend/server.js\" \"npm run dev --prefix frontend\""
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
