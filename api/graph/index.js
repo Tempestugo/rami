@@ -1,10 +1,4 @@
-/**
- * /api/graph/index.js  →  GET /api/graph
- * Vercel Serverless Function (Node.js runtime, CommonJS)
- * Query params: maxHsk, context, mode
- */
-
-const { hanziData } = require('../_data/hanziData');
+import { hanziData } from '../_data/hanziData.js';
 
 function buildGraph(maxHsk = 6, context = null, mode = 'evo') {
   let universe = hanziData.filter(n => n.hsk <= maxHsk);
@@ -54,8 +48,7 @@ function buildGraph(maxHsk = 6, context = null, mode = 'evo') {
   return { nodes, edges };
 }
 
-module.exports = function handler(req, res) {
-  // Handle CORS preflight
+export default function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -79,4 +72,4 @@ module.exports = function handler(req, res) {
     console.error('Graph build error:', err);
     return res.status(500).json({ success: false, message: 'Failed to build graph.' });
   }
-};
+}

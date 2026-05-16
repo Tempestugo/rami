@@ -1,12 +1,6 @@
-/**
- * /api/graph/character/[id].js  →  GET /api/graph/character/:id
- * Returns full character detail for a single character.
- * Vercel dynamic route: the [id] segment becomes req.query.id
- */
+import { hanziData } from '../../_data/hanziData.js';
 
-const { hanziData } = require('../../_data/hanziData');
-
-module.exports = function handler(req, res) {
+export default function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -29,4 +23,4 @@ module.exports = function handler(req, res) {
   }
 
   return res.status(200).json({ success: true, data: char });
-};
+}
