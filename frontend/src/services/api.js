@@ -3,53 +3,39 @@
  * Centralized API service — all fetch calls go through here.
  * Single Responsibility: components never call fetch() directly.
  */
-import axios from 'axios';
-
-const BASE = '/api';
-
-axios.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.config) {
-      console.error(
-        `Axios Error: ${error.config.method.toUpperCase()} ${error.config.baseURL || ''}${error.config.url} failed.`,
-        error.message
-      );
-    }
-    return Promise.reject(error);
-  }
-);
+import { buildGraph, expandNode, getCharacterDetail, getAllTags } from './local/graphService';
+import { findPhrases } from './local/phraseService';
 
 export const graphApi = {
   /**
    * Fetch graph nodes and edges.
    * @param {{ maxHsk, context, mode }} params
    */
-  getGraph: ({ maxHsk = 6, context = null, mode = 'evo', rootsOnly = false } = {}) => {
-    const params = { maxHsk, mode };
-    if (context) params.context = context;
-    if (rootsOnly) params.rootsOnly = true;
-    return axios.get(`${BASE}/graph`, { params }).then(r => r.data.data);
+  getGraph: async ({ maxHsk = 6, context = null, mode = 'evo', rootsOnly = false } = {}) => {
+    return buildGraph(maxHsk, context, mode, rootsOnly);
   },
 
   /**
    * Fetch full character detail by ID.
    */
-  getCharacter: (id) =>
-    axios.get(`${BASE}/graph/character/${encodeURIComponent(id)}`).then(r => r.data.data),
+  getCharacter: async (id) => {
+    const char = getCharacterDetail(id);
+    if (!char) throw new Error("Character not found");
+    return char;
+  },
 
   /**
    * Fetch all semantic tags.
    */
-  getTags: () =>
-    axios.get(`${BASE}/graph/tags`).then(r => r.data.data),
+  getTags: async () => {
+    return getAllTags();
+  },
 
   /**
    * Expand graph specific node
    */
-  expandNode: (id, mode, maxHsk = 6) => {
-    const params = { mode, maxHsk };
-    return axios.get(`${BASE}/graph/expand/${encodeURIComponent(id)}`, { params }).then(r => r.data.data);
+  expandNode: async (id, mode, maxHsk = 6) => {
+    return expandNode(id, mode, maxHsk);
   },
 };
 
@@ -58,8 +44,9 @@ export const phraseApi = {
    * Find phrases containing the provided characters.
    * @param {string[]} chars - array of character IDs
    */
-  buildPhrase: (chars) =>
-    axios.post(`${BASE}/phrases/build`, { chars }).then(r => r.data.data),
+  buildPhrase: async (chars) => {
+    return findPhrases(chars);
+  },
 };
 
 export const dictApi = {
