@@ -36,18 +36,10 @@ export default function DetailsPanel() {
     const writer = HanziWriter.create(writerTargetRef.current, activeChar.id, {
       width: 160,
       height: 160,
-      padding: 16,
+      padding: 5,
       showOutline: true,
-      strokeAnimationSpeed: 1.4,
-      delayBetweenStrokes: 120,
-      strokeColor: '#f5f5f4',
-      outlineColor: 'rgba(255,255,255,0.1)',
-      radicalColor: '#dc2626',
-      highlightColor: '#f59e0b',
-      drawingColor: '#f5f5f4',
-      drawingWidth: 4,
-      showHintAfterMisses: 3,
-      // 2. ADICIONE ISSO: Busca os dados dos traços no CDN para evitar o erro 404
+      strokeColor: '#4361ee',
+      // IMPORTANTE: Carrega os dados dos traços via CDN
       charDataLoader: (char) => {
         return fetch(`https://cdn.jsdelivr.net/npm/hanzi-writer-data@2.0/${char}.json`)
           .then(res => res.json());
@@ -56,8 +48,7 @@ export default function DetailsPanel() {
 
     writerRef.current = writer;
 
-    const timeout = setTimeout(() => writer.animateCharacter(), 400);
-    return () => clearTimeout(timeout);
+    writer.animateCharacter(); // Inicia a animação assim que carregar
   }, [activeChar]);
 
   const handleAnimate = () => {
