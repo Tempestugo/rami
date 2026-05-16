@@ -120,7 +120,6 @@ export default function GraphCanvas() {
     network.on('click', (params) => {
       if (params.nodes.length > 0) {
         const nodeId = params.nodes[0];
-        graphApi.getCharacter(nodeId).then(char => setActiveChar(char)).catch(console.error);
         const domPos = params.pointer.DOM;
         setRadialMenu({ nodeId, x: domPos.x, y: domPos.y });
       } else {
@@ -161,6 +160,11 @@ export default function GraphCanvas() {
     setRadialMenu(null);
   };
 
+  const handleViewDetails = (nodeId) => {
+    graphApi.getCharacter(nodeId).then(char => setActiveChar(char)).catch(console.error);
+    setRadialMenu(null);
+  };
+
   return (
     <div className="flex-1 relative overflow-hidden bg-ink-950">
       <div
@@ -194,6 +198,7 @@ export default function GraphCanvas() {
           y={radialMenu.y}
           onClose={() => setRadialMenu(null)}
           onSelectForPhrase={handleSelectForPhrase}
+          onViewDetails={handleViewDetails}
         />
       )}
 
