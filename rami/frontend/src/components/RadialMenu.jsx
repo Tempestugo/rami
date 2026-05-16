@@ -1,5 +1,5 @@
 import React from 'react';
-import { useStore } from '../store/useStore';
+import useStore from '../store/useStore';
 
 export default function RadialMenu({ position, nodeId, onExpand, onClose }) {
   const { toggleSelection, selectedChars } = useStore();
