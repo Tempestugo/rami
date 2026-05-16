@@ -12,7 +12,8 @@ export default defineConfig({
     }
   },
   build: {
-    outDir: 'dist',
+    // Output to rami/dist (root level) — where Hostinger looks for built assets
+    outDir: '../dist',
     emptyOutDir: true,
   }
 })

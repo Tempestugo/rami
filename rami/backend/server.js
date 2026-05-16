@@ -16,11 +16,10 @@ app.use('/api/graph', graphRoutes);
 app.use('/api/phrases', phraseRoutes);
 
 // Serve React frontend in production
-// __dirname = rami/backend, so dist is one level up in rami/frontend/dist
+// Vite outputs to rami/dist (project root), so from rami/backend we go up one level
 if (process.env.NODE_ENV === 'production') {
-  const distPath = path.join(__dirname, '..', 'frontend', 'dist');
+  const distPath = path.join(__dirname, '..', 'dist');
   app.use(express.static(distPath));
-  // Catch-all: return index.html for React Router (SPA)
   app.get('*', (req, res) => {
     res.sendFile(path.join(distPath, 'index.html'));
   });
@@ -28,8 +27,5 @@ if (process.env.NODE_ENV === 'production') {
 
 app.listen(PORT, () => {
   console.log('Rami server running on port ' + PORT);
-  console.log('   Mode: ' + (process.env.NODE_ENV || 'development'));
-  if (process.env.NODE_ENV === 'production') {
-    console.log('   Serving static: ' + path.join(__dirname, '..', 'frontend', 'dist'));
-  }
+  console.log('Mode: ' + (process.env.NODE_ENV || 'development'));
 });
