@@ -2,8 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 
-const graphRoutes = require('./routes/graph');
-const phraseRoutes = require('./routes/phrases');
+const graphRoutes = require(path.join(__dirname, 'routes', 'graph'));
+const phraseRoutes = require(path.join(__dirname, 'routes', 'phrases'));
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -17,11 +17,15 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get('/api/health', (req, res) => res.json({ ok: true }));
+app.get('/api/health', (req, res) => res.json({ ok: true, env: process.env.NODE_ENV }));
 
 // API Routes
 app.use('/api/graph', graphRoutes);
 app.use('/api/phrases', phraseRoutes);
+
+app.use('/api', (req, res) => {
+  res.status(404).json({ success: false, message: 'API route not found: ' + req.url });
+});
 
 // Serve React frontend in production
 if (process.env.NODE_ENV === 'production') {
@@ -32,6 +36,11 @@ if (process.env.NODE_ENV === 'production') {
     res.sendFile(path.join(distPath, 'index.html'));
   });
 }
+
+app.use((err, req, res, next) => {
+  console.error('Express error:', err.message);
+  res.status(500).json({ success: false, message: err.message });
+});
 
 app.listen(PORT, () => {
   console.log(`🀄 Rami server running on port ${PORT}`);

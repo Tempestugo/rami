@@ -3,7 +3,8 @@
  * Handles all /api/phrases requests. Delegates to phraseService.
  */
 
-const { findPhrases } = require('../services/phraseService');
+const path = require('path');
+const { findPhrases } = require(path.join(__dirname, '..', 'services', 'phraseService'));
 
 /**
  * POST /api/phrases/build

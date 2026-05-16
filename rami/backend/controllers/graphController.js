@@ -3,7 +3,8 @@
  * Handles all /api/graph requests. Delegates business logic to graphService.
  */
 
-const { buildGraph, getCharacterDetail, getAllTags, expandNode } = require('../services/graphService');
+const path = require('path');
+const { buildGraph, getCharacterDetail, getAllTags, expandNode } = require(path.join(__dirname, '..', 'services', 'graphService'));
 
 /**
  * GET /api/graph

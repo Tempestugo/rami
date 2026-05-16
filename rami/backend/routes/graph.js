@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { getGraph, getCharacter, getTags, expandNode } = require('../controllers/graphController');
+const path = require('path');
+const { getGraph, getCharacter, getTags, expandNode } = require(path.join(__dirname, '..', 'controllers', 'graphController'));
 
 // GET /api/graph?maxHsk=3&context=cozinha&mode=evo
 router.get('/', getGraph);
