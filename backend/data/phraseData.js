@@ -63,4 +63,4 @@ const phraseData = [
   { phrase: '知道', pinyin: 'zhī dào', translation: 'To know / aware', hsk: 2, chars: ['知'] },
 ];
 
-module.exports = { phraseData };
+export { phraseData };

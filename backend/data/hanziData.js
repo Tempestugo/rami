@@ -145,4 +145,4 @@ const hanziData = [
   { id: '知', pinyin: 'zhī', meaning: 'to know', hsk: 2, components: ['口'], visual_parents: ['口'], tags: ['acao', 'estudo'] },
 ];
 
-module.exports = { hanziData };
+export { hanziData };
