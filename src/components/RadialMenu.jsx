@@ -32,33 +32,30 @@ export default function RadialMenu({ nodeId, x, y, onClose, onSelectForPhrase, o
       </div>
 
       <button
-        onClick={() => onSelectForPhrase(nodeId)}
-        className={`w-full text-left flex items-center gap-2 px-2 py-2 rounded-lg text-sm
+        onClick={(e) => { e.stopPropagation(); onSelectForPhrase(nodeId); }}
+        className={`w-full text-left px-2 py-2 rounded-lg text-sm
           transition-colors duration-100
           ${isSelected
             ? 'text-gold-300 bg-gold-500/15 hover:bg-gold-500/20'
             : 'text-ink-300 hover:bg-white/[0.08] hover:text-white'
           }`}
       >
-        <span>{isSelected ? '★' : '☆'}</span>
-        {isSelected ? 'Remover da Frase' : 'Selec. para Frase'}
+        {isSelected ? 'Remover da Frase' : 'Selecionar para Frase'}
       </button>
 
       <button
-        onClick={() => onViewDetails(nodeId)}
-        className="w-full text-left flex items-center gap-2 px-2 py-2 rounded-lg text-sm
+        onClick={(e) => { e.stopPropagation(); onViewDetails(nodeId); }}
+        className="w-full text-left px-2 py-2 rounded-lg text-sm
                    text-ink-300 hover:bg-white/[0.08] hover:text-white transition-colors duration-100"
       >
-        <span className="text-lg leading-none">👁️</span>
-        Ver ordem de traço
+        Ver ordem dos traços
       </button>
 
       <button
-        onClick={onClose}
-        className="w-full text-left flex items-center gap-2 px-2 py-2 rounded-lg text-sm
+        onClick={(e) => { e.stopPropagation(); onClose(); }}
+        className="w-full text-left px-2 py-2 rounded-lg text-sm
                    text-ink-500 hover:bg-white/5 hover:text-ink-300 transition-colors"
       >
-        <span>×</span>
         Fechar menu
       </button>
     </div>

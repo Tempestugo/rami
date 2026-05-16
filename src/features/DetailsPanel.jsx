@@ -48,7 +48,11 @@ export default function DetailsPanel() {
 
     writerRef.current = writer;
 
-    writer.animateCharacter(); // Inicia a animação assim que carregar
+    // Adicionado um pequeno delay para garantir que o CDN carregue os dados antes de animar
+    const timeout = setTimeout(() => {
+      writerRef.current?.animateCharacter();
+    }, 500);
+    return () => clearTimeout(timeout);
   }, [activeChar]);
 
   const handleAnimate = () => {
@@ -146,8 +150,8 @@ export default function DetailsPanel() {
               : 'bg-gold-500/20 text-gold-300 border-gold-500/30'
             }`}>
             {quizResult === 0
-              ? '🎉 Perfeito! Nenhum erro.'
-              : `✏️ Concluído com ${quizResult} erro${quizResult !== 1 ? 's' : ''}.`
+              ? 'Perfeito! Nenhum erro.'
+              : `Concluído com ${quizResult} erro${quizResult !== 1 ? 's' : ''}.`
             }
           </div>
         )}
@@ -159,7 +163,7 @@ export default function DetailsPanel() {
                        bg-ink-800 border border-white/15 text-ink-200
                        hover:bg-ink-700 hover:text-white transition-all duration-150"
           >
-            ▶ Repetir Animação
+            Repetir Animação
           </button>
 
           <button
@@ -168,7 +172,7 @@ export default function DetailsPanel() {
                        bg-jade-600/20 border border-jade-600/40 text-jade-300
                        hover:bg-jade-600/30 transition-all duration-150"
           >
-            ✏️ Modo Quiz (Desenhe)
+            Modo Quiz (Desenhe)
           </button>
 
           <button
@@ -180,7 +184,7 @@ export default function DetailsPanel() {
                           : 'bg-transparent border-white/15 text-ink-400 hover:border-gold-500/30 hover:text-gold-300'
                         }`}
           >
-            {isSelected ? '★ Selecionado para Frase' : '☆ Selecionar para Frase'}
+            {isSelected ? 'Selecionado para Frase' : 'Selecionar para Frase'}
           </button>
         </div>
 
