@@ -23,6 +23,20 @@ function getGraph(req, res) {
   }
 }
 
+function expandNode(req, res) {
+  const id = req.params.id;
+  const mode = req.query.mode || 'evo';
+  const maxHsk = parseInt(req.query.maxHsk) || 6;
+
+  try {
+    const graph = expandNodeService(id, mode, maxHsk);
+    res.json({ success: true, data: graph });
+  } catch (err) {
+    console.error('Expand node error:', err);
+    res.status(500).json({ success: false, message: 'Failed to expand node.' });
+  }
+}
+
 /**
  * GET /api/graph/character/:id
  * Returns full detail for a single character.
@@ -43,4 +57,4 @@ function getTags(req, res) {
   res.json({ success: true, data: tags });
 }
 
-module.exports = { getGraph, getCharacter, getTags };
+module.exports = { getGraph, getCharacter, getTags, expandNode };

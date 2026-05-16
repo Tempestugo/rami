@@ -78,9 +78,18 @@ function getCharacterDetail(id) {
  * Returns all available semantic tags for the sidebar filter buttons.
  */
 function getAllTags() {
+  const db = getDb();
   const tagSet = new Set();
-  hanziData.forEach(n => n.tags.forEach(t => tagSet.add(t)));
+  if (db) {
+    const rows = db.prepare('SELECT tags FROM characters').all();
+    rows.forEach(r => {
+      const tgs = JSON.parse(r.tags);
+      tgs.forEach(t => tagSet.add(t));
+    });
+  } else {
+    hanziData.forEach(n => n.tags.forEach(t => tagSet.add(t)));
+  }
   return Array.from(tagSet).sort();
 }
 
-module.exports = { buildGraph, getCharacterDetail, getAllTags };
+module.exports = { buildGraph, expandNode, getCharacterDetail, getAllTags };

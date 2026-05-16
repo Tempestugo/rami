@@ -63,6 +63,7 @@ export default function GraphCanvas() {
   const networkRef = useRef(null);
   const nodesDS = useRef(new DataSet());
   const edgesDS = useRef(new DataSet());
+  const expandedNodes = useRef(new Set());
 
   const { mode, maxHsk, context, setActiveChar, togglePhraseSelection, phraseSelection } = useStore();
 
@@ -90,9 +91,10 @@ export default function GraphCanvas() {
   // Fetch and render graph
   const loadGraph = useCallback(async () => {
     try {
-      const { nodes, edges } = await graphApi.getGraph({ maxHsk, context, mode });
+      const { nodes, edges } = await graphApi.getGraph({ maxHsk, context, mode, rootsOnly: true });
       nodesDS.current.clear();
       edgesDS.current.clear();
+      expandedNodes.current.clear(); // Reset expanded nodes
       nodesDS.current.add(nodes.map(buildVisNode));
       edgesDS.current.add(edges);
       setTimeout(() => {
@@ -102,6 +104,36 @@ export default function GraphCanvas() {
       console.error('Failed to load graph:', err);
     }
   }, [maxHsk, context, mode, buildVisNode]);
+
+  // Handle Node Expansion
+  const handleExpandNode = useCallback(async (nodeId, expandMode) => {
+    const key = `${nodeId}-${expandMode}`;
+    if (expandedNodes.current.has(key)) return; // Already expanded this mode
+
+    try {
+      const { nodes, edges } = await graphApi.expandNode(nodeId, expandMode, maxHsk);
+      
+      const newNodes = [];
+      nodes.forEach(n => {
+        if (!nodesDS.current.get(n.id)) {
+          newNodes.push(buildVisNode(n));
+        }
+      });
+      if (newNodes.length > 0) nodesDS.current.add(newNodes);
+      
+      const currentEdges = edgesDS.current.get();
+      const newEdges = [];
+      edges.forEach(e => {
+        const exists = currentEdges.some(ce => ce.from === e.from && ce.to === e.to);
+        if (!exists) newEdges.push(e);
+      });
+      if (newEdges.length > 0) edgesDS.current.add(newEdges);
+      
+      expandedNodes.current.add(key);
+    } catch (err) {
+      console.error('Failed to expand node:', err);
+    }
+  }, [maxHsk, buildVisNode]);
 
   // Initialize network once
   useEffect(() => {
@@ -179,6 +211,7 @@ export default function GraphCanvas() {
           y={radialMenu.y}
           onClose={() => setRadialMenu(null)}
           onSelectForPhrase={handleSelectForPhrase}
+          onExpand={handleExpandNode}
         />
       )}
 
