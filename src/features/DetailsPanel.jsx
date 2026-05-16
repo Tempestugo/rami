@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import HanziWriter from 'hanzi-writer';
 import useStore from '../store/useStore';
+import ContextImage from '../components/ContextImage'; // Ajuste o caminho se necessário
 
 const HSK_BADGE_COLORS = {
   1: 'bg-azure-600/20 text-azure-300 border-azure-600/30',
@@ -21,36 +22,23 @@ export default function DetailsPanel() {
   const isSelected = activeChar ? phraseSelection.includes(activeChar.id) : false;
 
   useEffect(() => {
-    if (!activeChar || !writerTargetRef.current) return;
+    if (activeChar && writerTargetRef.current) {
+      writerTargetRef.current.innerHTML = '';
+      const writer = HanziWriter.create(writerTargetRef.current, activeChar.id, {
+        width: 200,
+        height: 200,
+        padding: 5,
+        showOutline: true,
+        strokeColor: '#4361ee',
+        // Isso busca o desenho do caractere na nuvem caso o servidor não tenha o JSON
+        charDataLoader: (char) => {
+          return fetch(`https://cdn.jsdelivr.net/npm/hanzi-writer-data@2.0/${char}.json`)
+            .then(res => res.json());
+        }
+      });
 
-    setQuizActive(false);
-    setQuizResult(null);
-
-    if (writerRef.current) {
-      try { writerRef.current.cancelQuiz?.(); } catch {}
+      writerRef.current = writer;
     }
-    writerTargetRef.current.innerHTML = '';
-
-    const writer = HanziWriter.create(writerTargetRef.current, activeChar.id, {
-      width: 160,
-      height: 160,
-      padding: 16,
-      showOutline: true,
-      strokeAnimationSpeed: 1.4,
-      delayBetweenStrokes: 120,
-      strokeColor: '#f5f5f4',
-      outlineColor: 'rgba(255,255,255,0.1)',
-      radicalColor: '#dc2626',
-      highlightColor: '#f59e0b',
-      drawingColor: '#f5f5f4',
-      drawingWidth: 4,
-      showHintAfterMisses: 3,
-    });
-
-    writerRef.current = writer;
-
-    const timeout = setTimeout(() => writer.animateCharacter(), 400);
-    return () => clearTimeout(timeout);
   }, [activeChar]);
 
   const handleAnimate = () => {
@@ -194,6 +182,11 @@ export default function DetailsPanel() {
             </div>
           </div>
         )}
+
+        <div className="w-full mt-2">
+          <p className="text-xs text-ink-400 uppercase tracking-widest mb-2">Contexto Visual</p>
+          <ContextImage term={activeChar.meaning} /> 
+        </div>
 
       </div>
     </aside>
