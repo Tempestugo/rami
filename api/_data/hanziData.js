@@ -1,4 +1,9 @@
-export const hanziData = [
+/**
+ * hanziData.js — Master character database
+ * Vercel API routes use CommonJS; this file exports via module.exports.
+ */
+
+const hanziData = [
   // == NÚMEROS E FORMAS BÁSICAS ==
   { id: '一', pinyin: 'yī', meaning: 'one', hsk: 1, components: [], visual_parents: [], tags: ['numero'] },
   { id: '二', pinyin: 'èr', meaning: 'two', hsk: 1, components: ['一'], visual_parents: ['一'], tags: ['numero'] },
@@ -134,3 +139,5 @@ export const hanziData = [
   { id: '想', pinyin: 'xiǎng', meaning: 'to think / want', hsk: 1, components: ['木'], visual_parents: [], tags: ['acao'] },
   { id: '知', pinyin: 'zhī', meaning: 'to know', hsk: 2, components: ['口'], visual_parents: ['口'], tags: ['acao', 'estudo'] },
 ];
+
+module.exports = { hanziData };

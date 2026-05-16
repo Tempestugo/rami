@@ -1,8 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import HanziWriter from 'hanzi-writer';
 import useStore from '../store/useStore';
-import { dictApi } from '../services/api';
-import ContextImage from './ContextImage';
 
 const HSK_BADGE_COLORS = {
   1: 'bg-azure-600/20 text-azure-300 border-azure-600/30',
@@ -19,19 +17,15 @@ export default function DetailsPanel() {
   const writerRef = useRef(null);
   const [quizActive, setQuizActive] = useState(false);
   const [quizResult, setQuizResult] = useState(null);
-  const [dictDef, setDictDef] = useState(null);
-  const [dictLoading, setDictLoading] = useState(false);
 
   const isSelected = activeChar ? phraseSelection.includes(activeChar.id) : false;
 
-  // Re-create HanziWriter when activeChar changes
   useEffect(() => {
     if (!activeChar || !writerTargetRef.current) return;
 
     setQuizActive(false);
     setQuizResult(null);
 
-    // Clear previous writer
     if (writerRef.current) {
       try { writerRef.current.cancelQuiz?.(); } catch {}
     }
@@ -55,19 +49,7 @@ export default function DetailsPanel() {
 
     writerRef.current = writer;
 
-    // Auto-animate on load
     const timeout = setTimeout(() => writer.animateCharacter(), 400);
-
-    // Load moedict data
-    setDictLoading(true);
-    setDictDef(null);
-    dictApi.getDefinition(activeChar.id).then(data => {
-      if (data && data.heteronyms && data.heteronyms[0] && data.heteronyms[0].definitions && data.heteronyms[0].definitions[0]) {
-        setDictDef(data.heteronyms[0].definitions[0].def);
-      }
-      setDictLoading(false);
-    });
-
     return () => clearTimeout(timeout);
   }, [activeChar]);
 
@@ -94,7 +76,7 @@ export default function DetailsPanel() {
 
   if (!activeChar) {
     return (
-      <aside className="w-72 shrink-0 bg-ink-900 border-l border-white/8 flex flex-col items-center justify-center z-10">
+      <aside className="w-72 shrink-0 bg-ink-900 border-l border-white/[0.08] flex flex-col items-center justify-center z-10">
         <div className="text-center px-6 fade-up">
           <div className="text-5xl mb-4 opacity-20 font-display">漢</div>
           <p className="text-sm text-ink-500 italic leading-relaxed">
@@ -108,41 +90,25 @@ export default function DetailsPanel() {
   const badgeClass = HSK_BADGE_COLORS[activeChar.hsk] || HSK_BADGE_COLORS[6];
 
   return (
-    <aside className="w-72 shrink-0 bg-ink-900 border-l border-white/8 flex flex-col overflow-y-auto z-10">
+    <aside className="w-72 shrink-0 bg-ink-900 border-l border-white/[0.08] flex flex-col overflow-y-auto z-10">
       <div className="p-5 flex flex-col items-center gap-4 fade-up">
 
-        {/* HSK badge */}
         <span className={`text-xs font-mono font-semibold px-2.5 py-0.5 rounded-full border ${badgeClass}`}>
           HSK {activeChar.hsk}
         </span>
 
-        {/* Character display */}
         <div className="font-display text-7xl text-white leading-none">
           {activeChar.id}
         </div>
 
-        {/* Pinyin */}
         <div className="text-vermillion-400 font-mono text-xl font-bold tracking-wide">
           {activeChar.pinyin}
         </div>
 
-        {/* Meaning */}
         <div className="text-ink-200 text-sm text-center font-body leading-relaxed">
           {activeChar.meaning}
         </div>
 
-        {/* Detailed definition */}
-        {(dictDef || dictLoading) && (
-          <div className="text-ink-400 text-xs text-center italic mt-1 px-2">
-            <span className="block font-semibold mb-1 not-italic">Definição detalhada:</span>
-            {dictLoading ? 'Carregando...' : dictDef}
-          </div>
-        )}
-
-        {/* Context Image */}
-        <ContextImage keyword={activeChar.meaning} />
-
-        {/* Tags */}
         <div className="flex flex-wrap gap-1.5 justify-center">
           {(activeChar.tags || []).map(tag => (
             <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-ink-400 border border-white/10">
@@ -151,10 +117,8 @@ export default function DetailsPanel() {
           ))}
         </div>
 
-        {/* Divider */}
-        <div className="w-full h-px bg-white/8" />
+        <div className="w-full h-px bg-white/[0.08]" />
 
-        {/* HanziWriter target */}
         <div className="relative">
           <div
             ref={writerTargetRef}
@@ -171,7 +135,6 @@ export default function DetailsPanel() {
           )}
         </div>
 
-        {/* Quiz result */}
         {quizResult !== null && (
           <div className={`text-sm text-center px-3 py-2 rounded-lg border fade-up
             ${quizResult === 0
@@ -185,7 +148,6 @@ export default function DetailsPanel() {
           </div>
         )}
 
-        {/* Action buttons */}
         <div className="flex flex-col gap-2 w-full">
           <button
             onClick={handleAnimate}
@@ -218,7 +180,6 @@ export default function DetailsPanel() {
           </button>
         </div>
 
-        {/* Components info */}
         {activeChar.components && activeChar.components.length > 0 && (
           <div className="w-full">
             <p className="text-xs text-ink-400 uppercase tracking-widest mb-2">Componentes</p>

@@ -1,138 +1,174 @@
-# 🀄 Rami — Hanzi Graph Explorer
+# Rami — Hanzi Graph Explorer
 
-> Ferramenta interativa de mapeamento mental e memorização de caracteres chineses.
+> Ferramenta interativa de mapeamento mental e memorização de caracteres chineses (漢字)
 
----
+## 🚀 Deploy na Vercel (passo a passo)
 
-## Arquitetura
+### Opção A — Deploy pela interface web (mais fácil)
 
-```
-rami/
-├── backend/
-│   ├── controllers/     # Handlers Express (graphController, phraseController)
-│   ├── routes/          # Rotas da API (/api/graph, /api/phrases)
-│   ├── data/            # Banco de dados de caracteres e frases em JS
-│   ├── services/        # Lógica de negócio pura (graphService, phraseService)
-│   └── server.js        # Entry point Express
-├── frontend/
-│   └── src/
-│       ├── components/  # RadialMenu, PhraseSelectionBar
-│       ├── features/    # SidebarFilters, GraphCanvas, DetailsPanel, PhraseModal
-│       ├── services/    # api.js (axios calls)
-│       ├── store/       # useStore.js (Zustand)
-│       ├── App.jsx
-│       └── main.jsx
-└── package.json         # Root — gatilho de build para Hostinger
-```
+1. Faça push deste projeto para um repositório no GitHub
+2. Acesse [vercel.com](https://vercel.com) e clique em **"Add New Project"**
+3. Importe o repositório do GitHub
+4. Nas configurações de build, a Vercel detectará automaticamente:
+   - **Framework Preset:** Vite
+   - **Build Command:** `npm run build`
+   - **Output Directory:** `dist`
+   - **Install Command:** `npm install`
+5. Clique em **Deploy** — pronto! ✅
 
----
-
-## Stack
-
-| Camada         | Tecnologia                          |
-|----------------|-------------------------------------|
-| Frontend       | React 18 + Vite + TailwindCSS       |
-| Grafo          | vis-network                         |
-| Stroke Order   | hanzi-writer                        |
-| Estado Global  | Zustand                             |
-| Backend        | Node.js + Express                   |
-| Banco de Dados | JSON embarcado (→ SQLite em produção) |
-
----
-
-## Rodando Localmente
-
-### Pré-requisitos
-- Node.js >= 18
-
-### 1. Instalar dependências
+### Opção B — Deploy pela CLI da Vercel
 
 ```bash
-# Backend
-cd backend && npm install
+# Instalar CLI da Vercel
+npm i -g vercel
 
-# Frontend
-cd frontend && npm install
+# Dentro da pasta do projeto
+cd rami-vercel
+npm install
+vercel
 ```
 
-### 2. Iniciar em modo desenvolvimento
-
-```bash
-# Terminal 1 — Backend (porta 3001)
-cd backend && node server.js
-
-# Terminal 2 — Frontend (porta 5173 com proxy /api)
-cd frontend && npm run dev
-```
-
-Acesse: **http://localhost:5173**
+Responda as perguntas da CLI:
+- **Set up and deploy?** → `Y`
+- **Which scope?** → Sua conta
+- **Link to existing project?** → `N`
+- **Project name?** → `rami-hanzi-explorer`
+- **In which directory?** → `.`
+- **Override settings?** → `N`
 
 ---
 
-## Deploy na Hostinger
+## 🗂️ Estrutura do Projeto
 
-A Hostinger executa o comando `npm run build` na raiz e depois `npm start`.
-
-O `package.json` raiz faz:
-1. `cd frontend && npm install && npm run build` → gera `/frontend/dist`
-2. `cd backend && npm install`
-
-O `server.js` detecta `NODE_ENV=production` e serve a pasta `/frontend/dist` como estático.
-
-### Variáveis de ambiente
 ```
-NODE_ENV=production
-PORT=3001  # ou a porta configurada pela Hostinger
+rami-vercel/
+├── api/                        # Vercel Serverless Functions (Node.js)
+│   ├── _data/
+│   │   ├── hanziData.js        # Banco de caracteres (CommonJS)
+│   │   └── phraseData.js       # Banco de frases (CommonJS)
+│   ├── graph/
+│   │   ├── index.js            # GET /api/graph
+│   │   ├── tags.js             # GET /api/graph/tags
+│   │   └── character/
+│   │       └── [id].js         # GET /api/graph/character/:id
+│   └── phrases/
+│       └── build.js            # POST /api/phrases/build
+├── src/                        # React Frontend (Vite + Tailwind)
+│   ├── components/
+│   │   ├── PhraseSelectionBar.jsx
+│   │   └── RadialMenu.jsx
+│   ├── features/
+│   │   ├── GraphCanvas.jsx     # Vis.js network graph
+│   │   ├── SidebarFilters.jsx
+│   │   ├── DetailsPanel.jsx    # HanziWriter + quiz
+│   │   └── PhraseModal.jsx
+│   ├── services/
+│   │   └── api.js              # Axios API client
+│   ├── store/
+│   │   └── useStore.js         # Zustand global state
+│   ├── App.jsx
+│   ├── main.jsx
+│   └── index.css
+├── public/
+│   └── rami-icon.svg
+├── index.html
+├── vite.config.js
+├── tailwind.config.js
+├── postcss.config.js
+├── vercel.json                 # Rotas e headers CORS
+└── package.json
 ```
 
 ---
 
-## API
+## 🔌 API Endpoints
 
-### `GET /api/graph`
-| Param    | Tipo    | Default | Descrição                     |
-|----------|---------|---------|-------------------------------|
-| maxHsk   | number  | 6       | Nível máximo HSK a incluir    |
-| context  | string  | null    | Tag semântica (ex: `cozinha`) |
-| mode     | string  | `evo`   | `dag` \| `evo` \| `sim`      |
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| `GET` | `/api/graph` | Grafo filtrado por HSK, contexto e modo |
+| `GET` | `/api/graph/tags` | Lista todas as tags semânticas |
+| `GET` | `/api/graph/character/:id` | Detalhe completo de um caractere |
+| `POST` | `/api/phrases/build` | Encontrar frases com os caracteres selecionados |
 
-**Resposta:**
-```json
-{
-  "success": true,
-  "data": {
-    "nodes": [{ "id": "木", "pinyin": "mù", "meaning": "wood", "hsk": 1, "tags": ["natureza"] }],
-    "edges": [{ "from": "木", "to": "林" }]
-  }
-}
-```
+### Parâmetros de `/api/graph`
 
-### `GET /api/graph/character/:id`
-Retorna dados completos de um caractere.
+| Param | Tipo | Default | Descrição |
+|-------|------|---------|-----------|
+| `maxHsk` | number | `6` | Nível máximo HSK a incluir |
+| `context` | string | `null` | Tag semântica (ex: `cozinha`, `natureza`) |
+| `mode` | string | `evo` | `dag`, `evo` ou `sim` |
 
-### `POST /api/phrases/build`
+### Corpo de `/api/phrases/build`
+
 ```json
 { "chars": ["我", "吃", "水", "果"] }
 ```
-Retorna frases reais que contêm o maior número de caracteres selecionados.
 
 ---
 
-## Os Três Pilares da Memória
+## 🛠️ Desenvolvimento Local
 
-| Pilar                    | Implementação                  |
-|--------------------------|--------------------------------|
-| Memória Motora           | HanziWriter + Modo Quiz        |
-| Memória Lógica/Estrutural | Grafo de componentes (DAG)    |
-| Memória Associativa      | Filtro semântico por contexto  |
+```bash
+# Instalar dependências
+npm install
+
+# Instalar CLI da Vercel para emular serverless localmente
+npm i -g vercel
+
+# Rodar em modo desenvolvimento (emula a Vercel localmente)
+vercel dev
+
+# OU apenas o frontend (sem as APIs):
+npm run dev
+```
+
+> **Dica:** `vercel dev` é o modo preferido para desenvolvimento, pois emula exatamente o comportamento de produção, incluindo as serverless functions em `/api`.
 
 ---
 
-## Roadmap
+## ⚙️ Por que essa estrutura funciona na Vercel
 
-- [ ] ETL pipeline: Make Me a Hanzi + CC-CEDICT → SQLite
-- [ ] Embeddings vetoriais reais (Python + all-MiniLM-L6-v2 → LanceDB)
-- [ ] Lazy Loading progressivo (expandir nó a nó)
-- [ ] Integração Tatoeba para banco de frases expandido
-- [ ] Sistema de usuários + progresso HSK persistido
-- [ ] Imagens contextuais via Unsplash API
+A Vercel trata automaticamente:
+
+- **Pasta `api/`** → cada arquivo `.js` vira uma serverless function (Node.js runtime)
+- **Rotas dinâmicas** → `[id].js` vira `/api/graph/character/:id` automaticamente
+- **Build do frontend** → Vite gera `dist/` que é servido como static hosting
+- **`vercel.json`** → configura rewrites para SPA (evita 404 em refresh) e headers CORS
+
+---
+
+## 🧠 Funcionalidades
+
+### Três Modos de Grafo
+- **Evolução (evo):** Radical → Caracteres Derivados
+- **Analítico (dag):** Caractere → Radicais Componentes
+- **Similaridade (sim):** Conexões por forma visual (+1 traço)
+
+### Filtros
+- **HSK Slider:** Filtra do nível 1 ao 6
+- **Contexto Semântico:** Cozinha, Natureza, Pessoa, Tempo, etc.
+
+### Painel de Detalhes
+- Animação de traços (HanziWriter)
+- Quiz interativo de escrita
+- Componentes do caractere
+
+### Construtor de Frases
+- Selecione múltiplos caracteres no grafo
+- O algoritmo busca frases reais contendo esses caracteres
+- Exibe pinyin e tradução
+
+---
+
+## 📦 Stack
+
+| Camada | Tecnologia |
+|--------|-----------|
+| Frontend | React 18 + Vite |
+| Estilo | Tailwind CSS |
+| Grafo | Vis.js (vis-network) |
+| Traços | HanziWriter |
+| Estado | Zustand |
+| HTTP | Axios |
+| Backend | Vercel Serverless Functions (Node.js) |
+| Hosting | Vercel |

@@ -21,7 +21,6 @@ export default function PhraseModal() {
         className="bg-ink-900 border border-white/15 rounded-2xl shadow-2xl w-full max-w-lg mx-4 p-6 fade-up"
         onClick={e => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <div>
             <h2 className="text-lg font-semibold text-ink-100">Construtor de Frases</h2>
@@ -37,7 +36,6 @@ export default function PhraseModal() {
           </button>
         </div>
 
-        {/* Results */}
         {phraseResults.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-ink-500 text-sm italic">
@@ -54,7 +52,6 @@ export default function PhraseModal() {
                 key={i}
                 className="rounded-xl border border-white/10 bg-ink-800 p-4 flex flex-col gap-2"
               >
-                {/* Phrase */}
                 <div className="flex items-center gap-3">
                   <span className="font-display text-2xl text-gold-300 tracking-wider">
                     {result.phrase}
@@ -62,22 +59,19 @@ export default function PhraseModal() {
                   <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-azure-600/20 text-azure-300 border border-azure-600/30">
                     HSK {result.hsk}
                   </span>
-                  <span className="text-xs text-jade-400 ml-auto">
+                  <span className="text-xs text-jade-300 ml-auto">
                     {Math.round(result.coverage * 100)}% match
                   </span>
                 </div>
 
-                {/* Pinyin */}
                 <div className="text-vermillion-400 font-mono text-sm">
                   {result.pinyin}
                 </div>
 
-                {/* Translation */}
                 <div className="text-ink-300 text-sm">
                   {result.translation}
                 </div>
 
-                {/* Highlight which chars matched */}
                 <div className="flex gap-1.5 flex-wrap mt-1">
                   {phraseSelection.map(c => (
                     <span
@@ -97,7 +91,6 @@ export default function PhraseModal() {
           </div>
         )}
 
-        {/* Footer */}
         <div className="mt-5 flex justify-end">
           <button
             onClick={handleClose}

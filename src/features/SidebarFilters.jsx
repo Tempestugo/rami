@@ -33,7 +33,7 @@ export default function SidebarFilters() {
   const { mode, maxHsk, context, setMode, setMaxHsk, setContext, clearContext } = useStore();
 
   return (
-    <aside className="w-72 shrink-0 bg-ink-900 border-r border-white/8 flex flex-col overflow-y-auto z-10">
+    <aside className="w-72 shrink-0 bg-ink-900 border-r border-white/[0.08] flex flex-col overflow-y-auto z-10">
       <div className="p-5 flex flex-col gap-6">
 
         {/* Mode selector */}
@@ -48,7 +48,7 @@ export default function SidebarFilters() {
                 onClick={() => setMode(m.value)}
                 className={`flex items-start gap-3 px-3 py-2.5 rounded-lg text-left transition-all duration-200 border
                   ${mode === m.value
-                    ? 'bg-vermillion-500/15 border-vermillion-500/40 text-text-primary'
+                    ? 'bg-vermillion-500/15 border-vermillion-500/40 text-ink-100'
                     : 'bg-transparent border-white/5 text-ink-400 hover:bg-white/5 hover:text-ink-200'
                   }`}
               >
@@ -78,8 +78,7 @@ export default function SidebarFilters() {
             max={6}
             value={maxHsk}
             onChange={e => setMaxHsk(Number(e.target.value))}
-            className="w-full h-1.5 rounded-full appearance-none cursor-pointer
-                       bg-ink-700 accent-vermillion-500"
+            className="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-ink-700 accent-vermillion-500"
           />
           <div className="flex justify-between mt-1">
             {[1,2,3,4,5,6].map(n => (
@@ -123,7 +122,7 @@ export default function SidebarFilters() {
             ))}
           </div>
           <p className="text-xs text-ink-600 mt-2 italic">
-            Intersecção vetorial por campo semântico.
+            Intersecção por campo semântico.
           </p>
         </div>
 

@@ -1,15 +1,10 @@
-/**
- * useStore.js
- * Zustand global state — single source of truth.
- * Covers: graph mode, HSK filter, context tag, selected character, phrase selection tray.
- */
 import { create } from 'zustand';
 
 const useStore = create((set, get) => ({
   // === GRAPH CONTROLS ===
-  mode: 'evo',           // 'dag' | 'evo' | 'sim'
+  mode: 'evo',       // 'dag' | 'evo' | 'sim'
   maxHsk: 6,
-  context: null,          // e.g. 'cozinha' or null
+  context: null,     // e.g. 'cozinha' or null
 
   setMode: (mode) => set({ mode }),
   setMaxHsk: (maxHsk) => set({ maxHsk }),
@@ -17,11 +12,10 @@ const useStore = create((set, get) => ({
   clearContext: () => set({ context: null }),
 
   // === ACTIVE CHARACTER (details panel) ===
-  activeChar: null,       // full character object from API
+  activeChar: null,
   setActiveChar: (char) => set({ activeChar: char }),
 
   // === PHRASE BUILDER TRAY ===
-  // Array of character IDs selected for phrase building
   phraseSelection: [],
 
   togglePhraseSelection: (charId) => {

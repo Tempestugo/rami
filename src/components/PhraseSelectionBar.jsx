@@ -33,12 +33,10 @@ export default function PhraseSelectionBar() {
       <div className="bg-ink-800 border border-gold-500/30 rounded-2xl shadow-2xl px-4 py-3
                       flex items-center gap-3 pointer-events-auto fade-up">
 
-        {/* Label */}
         <span className="text-xs text-ink-400 uppercase tracking-widest shrink-0">
           Frase:
         </span>
 
-        {/* Selected chars */}
         <div className="flex gap-2 flex-wrap flex-1">
           {phraseSelection.map(c => (
             <button
@@ -55,7 +53,6 @@ export default function PhraseSelectionBar() {
           ))}
         </div>
 
-        {/* Build button */}
         <button
           onClick={handleBuildPhrase}
           disabled={loading}
@@ -66,7 +63,6 @@ export default function PhraseSelectionBar() {
           {loading ? '⏳ Buscando...' : `🀄 Formar Frase (${phraseSelection.length})`}
         </button>
 
-        {/* Clear */}
         <button
           onClick={clearPhraseSelection}
           className="shrink-0 text-ink-500 hover:text-vermillion-400 transition-colors text-lg leading-none"
