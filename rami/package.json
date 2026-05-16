@@ -1,0 +1,17 @@
+{
+  "name": "rami-hanzi-explorer",
+  "version": "1.0.0",
+  "description": "Rami - Hanzi Graph Explorer: Interactive mental mapping for Chinese character learning",
+  "main": "backend/server.js",
+  "scripts": {
+    "build": "cd frontend && npm install && npm run build && cd ../backend && npm install",
+    "start": "node backend/server.js",
+    "dev": "concurrently \"cd backend && node server.js\" \"cd frontend && npm run dev\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
