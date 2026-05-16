@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import HanziWriter from 'hanzi-writer';
 import useStore from '../store/useStore';
 import { dictApi } from '../services/api';
-import ContextImage from '../components/ContextImage';
+import ContextImage from './ContextImage';
 
 const HSK_BADGE_COLORS = {
   1: 'bg-azure-600/20 text-azure-300 border-azure-600/30',

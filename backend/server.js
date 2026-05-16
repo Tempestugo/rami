@@ -2,6 +2,9 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 
+// 1. AJUSTE O CAMINHO DAS ROTAS AQUI
+// Se você moveu a pasta 'routes' para dentro de um 'src', por exemplo, 
+// mude para: path.join(__dirname, 'src', 'routes', 'graph')
 const graphRoutes = require(path.join(__dirname, 'routes', 'graph'));
 const phraseRoutes = require(path.join(__dirname, 'routes', 'phrases'));
 
@@ -29,7 +32,9 @@ app.use('/api', (req, res) => {
 
 // Serve React frontend in production
 if (process.env.NODE_ENV === 'production') {
-  // Ajuste do caminho onde o build do frontend cai:
+  // 2. AJUSTE O CAMINHO DA PASTA 'DIST' AQUI
+  // Este caminho deve refletir exatamente o que está no 'outDir' do seu vite.config.js.
+  // Se o frontend agora faz o build dentro dele mesmo, altere para '../frontend/dist'
   const distPath = path.join(__dirname, '../dist');
   app.use(express.static(distPath));
   app.get('*', (req, res) => {
