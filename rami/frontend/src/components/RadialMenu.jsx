@@ -1,92 +1,59 @@
-import React, { useEffect, useRef } from 'react';
-import useStore from '../store/useStore';
+import React from 'react';
+import { useStore } from '../store/useStore';
 
-/**
- * RadialMenu
- * Floats over the graph canvas at the clicked node's DOM coordinates.
- * Provides quick actions: Select for Phrase, View Details (auto), Close Branch (future).
- */
-export default function RadialMenu({ nodeId, x, y, onClose, onSelectForPhrase, onExpand }) {
-  const { phraseSelection } = useStore();
-  const ref = useRef(null);
+export default function RadialMenu({ position, nodeId, onExpand, onClose }) {
+  const { toggleSelection, selectedChars } = useStore();
+  const isSelected = selectedChars.includes(nodeId);
 
-  const isSelected = phraseSelection.includes(nodeId);
-
-  // Click outside to close
-  useEffect(() => {
-    const handler = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) onClose();
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [onClose]);
-
-  // Keep menu inside viewport
-  const menuWidth = 200;
-  const menuHeight = 250;
-  const safeX = Math.min(x + 10, window.innerWidth - menuWidth - 20);
-  const safeY = Math.min(y + 10, window.innerHeight - menuHeight - 20);
+  // Se não houver posição ou nó, não desenha o menu
+  if (!position || !nodeId) return null;
 
   return (
     <div
-      ref={ref}
-      className="absolute z-30 bg-ink-800 border border-white/15 rounded-xl shadow-2xl p-2 fade-up"
-      style={{ left: safeX, top: safeY, minWidth: menuWidth }}
+      className="absolute z-50 flex flex-col gap-2 bg-white p-3 rounded-xl shadow-xl border border-gray-200 transition-all"
+      style={{ left: position.x + 15, top: position.y - 60 }}
     >
-      {/* Node label */}
-      <div className="flex items-center gap-2 px-2 py-1.5 mb-1 border-b border-white/8">
-        <span className="font-display text-2xl text-white">{nodeId}</span>
-        <span className="text-xs text-ink-500">Ações</span>
+      <div className="text-center font-bold text-xl text-gray-800 border-b pb-1 mb-1">
+        {nodeId}
       </div>
-
-      {/* Actions */}
+      
+      {/* Botão de Seleção (Bandeja de Frases) */}
       <button
-        onClick={() => { onExpand(nodeId, 'sim'); onClose(); }}
-        className="w-full text-left flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-ink-300 hover:bg-white/8 hover:text-white transition-colors mb-1"
-        title="Mostrar formas visualmente similares (+1 traço)"
+        onClick={() => { toggleSelection(nodeId); onClose(); }}
+        className={`text-sm px-4 py-2 rounded-md text-white font-medium transition-colors ${
+          isSelected ? 'bg-red-500 hover:bg-red-600' : 'bg-indigo-500 hover:bg-indigo-600'
+        }`}
       >
-        <span>〰️</span>
-        +1 Traço
+        {isSelected ? 'Desmarcar' : 'Adicionar à Frase'}
       </button>
 
-      <button
-        onClick={() => { onExpand(nodeId, 'dag'); onClose(); }}
-        className="w-full text-left flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-ink-300 hover:bg-white/8 hover:text-white transition-colors mb-1"
-        title="Do que este caractere é feito?"
+      {/* Botões de Expansão (Lazy Loading) */}
+      <button 
+        onClick={() => { onExpand('sim'); onClose(); }} 
+        className="text-xs px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-gray-700 font-semibold text-left"
       >
-        <span>🔬</span>
-        Decompor ▼
+        ✨ +1 Traço (Visual)
+      </button>
+      
+      <button 
+        onClick={() => { onExpand('dag'); onClose(); }} 
+        className="text-xs px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-gray-700 font-semibold text-left"
+      >
+        🔍 Decompor (Raízes)
+      </button>
+      
+      <button 
+        onClick={() => { onExpand('evo'); onClose(); }} 
+        className="text-xs px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-gray-700 font-semibold text-left"
+      >
+        🌿 Compor (Palavras)
       </button>
 
-      <button
-        onClick={() => { onExpand(nodeId, 'evo'); onClose(); }}
-        className="w-full text-left flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-ink-300 hover:bg-white/8 hover:text-white transition-colors mb-2 border-b border-white/8 pb-2 rounded-none"
-        title="Quais caracteres usam este como componente?"
+      <button 
+        onClick={onClose} 
+        className="text-xs text-gray-400 mt-1 hover:text-red-500 text-center font-medium"
       >
-        <span>🌿</span>
-        Compor ▲
-      </button>
-
-      <button
-        onClick={() => { onSelectForPhrase(nodeId); onClose(); }}
-        className={`w-full text-left flex items-center gap-2 px-2 py-2 rounded-lg text-sm
-          transition-colors duration-100 mb-1
-          ${isSelected
-            ? 'text-gold-300 bg-gold-500/15 hover:bg-gold-500/20'
-            : 'text-ink-300 hover:bg-white/8 hover:text-white'
-          }`}
-      >
-        <span>{isSelected ? '★' : '☆'}</span>
-        {isSelected ? 'Remover da Frase' : 'Selec. para Frase'}
-      </button>
-
-      <button
-        onClick={onClose}
-        className="w-full text-left flex items-center gap-2 px-2 py-2 rounded-lg text-sm
-                   text-ink-500 hover:bg-white/5 hover:text-ink-300 transition-colors"
-      >
-        <span>×</span>
-        Fechar menu
+        ✕ Fechar
       </button>
     </div>
   );
