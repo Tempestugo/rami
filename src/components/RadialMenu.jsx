@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import useStore from '../store/useStore';
 
-export default function RadialMenu({ nodeId, x, y, onClose, onSelectForPhrase }) {
+export default function RadialMenu({ nodeId, x, y, onClose, onSelectForPhrase, onViewDetails }) {
   const { phraseSelection } = useStore();
   const ref = useRef(null);
 
@@ -16,7 +16,7 @@ export default function RadialMenu({ nodeId, x, y, onClose, onSelectForPhrase })
   }, [onClose]);
 
   const menuWidth = 200;
-  const menuHeight = 130;
+  const menuHeight = 170;
   const safeX = Math.min(x + 10, window.innerWidth - menuWidth - 20);
   const safeY = Math.min(y + 10, window.innerHeight - menuHeight - 20);
 
@@ -42,6 +42,15 @@ export default function RadialMenu({ nodeId, x, y, onClose, onSelectForPhrase })
       >
         <span>{isSelected ? '★' : '☆'}</span>
         {isSelected ? 'Remover da Frase' : 'Selec. para Frase'}
+      </button>
+
+      <button
+        onClick={() => onViewDetails(nodeId)}
+        className="w-full text-left flex items-center gap-2 px-2 py-2 rounded-lg text-sm
+                   text-ink-300 hover:bg-white/[0.08] hover:text-white transition-colors duration-100"
+      >
+        <span className="text-lg leading-none">👁️</span>
+        Ver ordem de traço
       </button>
 
       <button
