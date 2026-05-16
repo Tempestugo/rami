@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Network, DataSet } from 'vis-network/standalone/umd/vis-network.min.js';
 import { graphApi } from '../services/api';
-import { useStore } from '../store/useStore';
+import useStore from '../store/useStore';
 import RadialMenu from '../components/RadialMenu';
 
 export default function GraphCanvas() {
