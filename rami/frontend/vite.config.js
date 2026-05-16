@@ -1,5 +1,5 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
@@ -8,12 +8,8 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:3001',
         changeOrigin: true,
+        secure: false,
       }
     }
-  },
-  build: {
-    // Output to rami/dist (root level) — where Hostinger looks for built assets
-    outDir: '../dist',
-    emptyOutDir: true,
   }
-})
+});
