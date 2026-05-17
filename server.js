@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 // Imports nativos e diretos (agora vão funcionar perfeitamente)
 import graphHandler from './api/graph/index.js';
 import charHandler from './api/graph/character/[id].js';
-
+import phraseHandler from './api/phrase/index.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
