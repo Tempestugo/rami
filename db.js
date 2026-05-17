@@ -11,8 +11,4 @@ const pool = mysql.createPool({
 
 
 
-
-database: 
-
-usuario:
 export default pool;

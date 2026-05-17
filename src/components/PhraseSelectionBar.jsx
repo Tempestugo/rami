@@ -29,7 +29,7 @@ export default function PhraseSelectionBar() {
   };
 
   return (
-    <div className="fixed bottom-0 left-72 right-72 z-40 px-4 pb-4 pointer-events-none">
+    <div className="fixed bottom-0 left-0 right-0 md:left-72 md:right-72 z-40 px-2 md:px-4 pb-4 pointer-events-none">
       <div className="bg-ink-800 border border-gold-500/30 rounded-2xl shadow-2xl px-4 py-3
                       flex items-center gap-3 pointer-events-auto fade-up">
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import useStore from '../store/useStore';
 
 const MODES = [
@@ -31,10 +31,36 @@ const HSK_COLORS = {
 
 export default function SidebarFilters() {
   const { mode, maxHsk, context, setMode, setMaxHsk, setContext, clearContext } = useStore();
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <aside className="w-72 shrink-0 bg-ink-900 border-r border-white/[0.08] flex flex-col overflow-y-auto z-10">
-      <div className="p-5 flex flex-col gap-6">
+    <>
+      <button 
+        onClick={() => setIsOpen(true)}
+        className="md:hidden fixed top-4 left-4 z-40 bg-ink-800 p-2.5 rounded-xl border border-white/10 text-ink-200 shadow-lg"
+      >
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div 
+          className="md:hidden fixed inset-0 bg-black/60 z-40 backdrop-blur-sm"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
+      <aside className={`fixed md:static inset-y-0 left-0 z-50 w-72 shrink-0 bg-ink-900 border-r border-white/[0.08] flex flex-col overflow-y-auto transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
+        <div className="p-5 flex flex-col gap-6 relative">
+          <button 
+            onClick={() => setIsOpen(false)}
+            className="md:hidden absolute top-4 right-4 text-ink-400 hover:text-white"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
 
         {/* Mode selector */}
         <div>
@@ -148,6 +174,7 @@ export default function SidebarFilters() {
         </div>
 
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }
