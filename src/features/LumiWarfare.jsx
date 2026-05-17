@@ -42,8 +42,9 @@ const LumiWarfare = ({ allies = ['人', '水', '火'] }) => {
         hp: 100,
         maxHp: 100,
         radius: 30,
+        shake: 0,
         class: isHealer ? 'healer' : isMage ? 'mage' : 'warrior',
-        trail: [], // Rastro para os guerreiros
+        trail: [], // Histórico de posições
         lastAttack: 0,
         lastHeal: 0,
         damageMultiplier: 1
@@ -52,10 +53,24 @@ const LumiWarfare = ({ allies = ['人', '水', '火'] }) => {
 
     // Spawn de Horda Inimiga
     gameState.current.enemies = [
-      { id: 'en_1', char: '他', x: canvas.width * 0.2, y: -50, hp: 120, maxHp: 120, radius: 25 },
-      { id: 'en_2', char: '妈', x: canvas.width * 0.8, y: -150, hp: 120, maxHp: 120, radius: 25 },
-      { id: 'en_3', char: '你', x: canvas.width * 0.5, y: -250, hp: 120, maxHp: 120, radius: 25 }
+      { id: 'en_1', char: '他', x: canvas.width * 0.2, y: -50, hp: 120, maxHp: 120, radius: 25, shake: 0 },
+      { id: 'en_2', char: '妈', x: canvas.width * 0.8, y: -150, hp: 120, maxHp: 120, radius: 25, shake: 0 },
+      { id: 'en_3', char: '你', x: canvas.width * 0.5, y: -250, hp: 120, maxHp: 120, radius: 25, shake: 0 }
     ];
+
+    // --- HELPER DE PARTÍCULAS ---
+    const spawnParticles = (x, y, color, count) => {
+      for(let i = 0; i < count; i++) {
+        gameState.current.particles.push({
+          x, y,
+          vx: (Math.random() - 0.5) * 12,
+          vy: (Math.random() - 0.5) * 12,
+          life: 1.0,
+          color,
+          size: Math.random() * 4 + 2
+        });
+      }
+    };
 
     // --- FUNÇÃO DE ATAQUE (Fetch) ---
     const performAttack = async (attacker, target) => {
@@ -70,53 +85,63 @@ const LumiWarfare = ({ allies = ['人', '水', '火'] }) => {
         if (data.success) {
           const finalDamage = data.damage * attacker.damageMultiplier;
           target.hp -= finalDamage;
+          target.shake = 15; // Camera/Impact Shake de 15 frames
 
-          // Adiciona texto flutuante de dano
-          gameState.current.floatingTexts.push({
-            x: target.x + (Math.random() * 20 - 10),
-            y: target.y - target.radius,
-            text: data.isEffective ? `⚡ SINERGIA! -${finalDamage}` : `-${finalDamage}`,
-            color: data.isEffective ? '#fcd34d' : '#f87171',
-            life: 1.0,
-            isCrit: data.isEffective
-          });
+          if (data.isEffective) {
+            spawnParticles(target.x, target.y, '#fcd34d', 15); // Explosão Dourada
+            gameState.current.floatingTexts.push({
+              x: target.x + (Math.random() * 20 - 10), y: target.y - 40,
+              text: `⚡ CRÍTICO! -${finalDamage}`, color: '#fcd34d', life: 1.0, vy: -1.5, isCrit: true
+            });
+          } else {
+            gameState.current.floatingTexts.push({
+              x: target.x + (Math.random() * 20 - 10), y: target.y - 40,
+              text: `-${finalDamage}`, color: '#f87171', life: 1.0, vy: -1, isCrit: false
+            });
+          }
         }
       } catch (err) {
         console.error("Erro no ataque:", err);
       }
     };
 
-    // Helper: Desenhar Barra de HP
-    const drawHPBar = (x, y, hp, maxHp) => {
-      const width = 40;
-      const height = 6;
-      const percent = Math.max(0, hp / maxHp);
-      ctx.fillStyle = '#374151';
-      ctx.fillRect(x - width/2, y, width, height);
-      ctx.fillStyle = percent > 0.5 ? '#10b981' : percent > 0.2 ? '#f59e0b' : '#ef4444';
-      ctx.fillRect(x - width/2, y, width * percent, height);
-    };
-
-    // --- LOOP PRINCIPAL ---
-    const loop = (timestamp) => {
+    // =======================================================
+    // 1. UPDATE LOOP (Apenas Lógica e Física)
+    // =======================================================
+    const update = (timestamp) => {
       const state = gameState.current;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Sincronia Rítmica (BPM do jogo: 120 Batidas por Minuto)
+      const BPM = 120;
+      const msPerBeat = 60000 / BPM; 
+      const currentBeat = Math.floor(timestamp / msPerBeat);
+      const isBeat = currentBeat > state.lastBeat;
+      if (isBeat) state.lastBeat = currentBeat;
 
-      // 1. UPDATE TROPAS E AURAS
+      // 1. Atualizar Tropas (Movimento e IA de Perseguição Suave)
       state.troops.forEach(t => {
         if (state.draggingId === t.id) {
           t.x = state.pointerX;
           t.y = state.pointerY;
+        } else if (state.enemies.length > 0) {
+          // IA: Buscar inimigo mais próximo
+          const target = state.enemies.reduce((prev, curr) => 
+            Math.hypot(curr.x - t.x, curr.y - t.y) < Math.hypot(prev.x - t.x, prev.y - t.y) ? curr : prev
+          );
+          // Smooth Pursuit (Lerp)
+          t.x += (target.x - t.x) * 0.02;
+          t.y += (target.y - t.y) * 0.02;
         }
-        t.damageMultiplier = 1;
 
+        t.damageMultiplier = 1; // Reseta buff do mago
+
+        // Rastro Histórico para o Guerreiro
         if (t.class === 'warrior') {
-          t.trail.push({ x: t.x, y: t.y, time: timestamp });
-          t.trail = t.trail.filter(pt => timestamp - pt.time < 400); // 400ms trace
+          t.trail.push({ x: t.x, y: t.y });
+          if (t.trail.length > 10) t.trail.shift(); // Guarda só as últimas 10 posições
         }
       });
 
-      // Auras Mago (+50% Dano para aliados)
       state.troops.forEach(mage => {
         if (mage.class === 'mage') {
           state.troops.forEach(ally => {
@@ -127,76 +152,157 @@ const LumiWarfare = ({ allies = ['人', '水', '火'] }) => {
         }
       });
 
-      // Auras Curandeiro (+5 HP)
-      state.troops.forEach(healer => {
-        if (healer.class === 'healer' && timestamp - healer.lastHeal > 1500) {
-          let healedSomeone = false;
-          state.troops.forEach(ally => {
-            if (ally.hp < ally.maxHp && Math.hypot(ally.x - healer.x, ally.y - healer.y) < 120) {
-              ally.hp = Math.min(ally.maxHp, ally.hp + 5);
-              state.floatingTexts.push({ x: ally.x, y: ally.y - ally.radius, text: '+5', color: '#4ade80', life: 1.0 });
-              healedSomeone = true;
-            }
-          });
-          if (healedSomeone) healer.lastHeal = timestamp;
-        }
-      });
-
-      // 2. UPDATE INIMIGOS E COLISÕES
-      state.enemies.forEach(en => {
-        // Inimigos caem suavemente
-        const dx = (canvas.width / 2) - en.x;
-        const dy = canvas.height - en.y;
-        const distToCenter = Math.hypot(dx, dy);
-        
-        if (distToCenter > 10) {
-          en.x += (dx / distToCenter) * 0.4;
-          en.y += (dy / distToCenter) * 0.4 + 0.5;
-        }
-
-        // Colisão / Ataque
+      // Ações Rítmicas sincronizadas no BEAT
+      if (isBeat) {
         state.troops.forEach(t => {
-          if (Math.hypot(t.x - en.x, t.y - en.y) < (t.radius + en.radius + 15)) {
-            if (timestamp - t.lastAttack > 1200) { // Cooldown de ataque
-              t.lastAttack = timestamp;
-              performAttack(t, en);
+          if (t.class === 'healer') {
+            state.troops.forEach(ally => {
+              if (ally.hp < ally.maxHp && Math.hypot(ally.x - t.x, ally.y - t.y) < 120) {
+                ally.hp = Math.min(ally.maxHp, ally.hp + 12);
+                state.floatingTexts.push({ x: ally.x, y: ally.y - 40, text: '+12', color: '#4ade80', life: 1.0, vy: -1 });
+              }
+            });
+          } else if (state.enemies.length > 0) { // Guerreiros e Magos atacam
+            const target = state.enemies.reduce((prev, curr) => 
+              Math.hypot(curr.x - t.x, curr.y - t.y) < Math.hypot(prev.x - t.x, prev.y - t.y) ? curr : prev
+            );
+            const dist = Math.hypot(target.x - t.x, target.y - t.y);
+            const range = t.class === 'mage' ? 200 : t.radius + target.radius + 15;
+            
+            if (dist < range) {
+              if (t.class === 'mage') {
+                // Dispara o raio projeta para a fila de renderização (Vida de 200ms)
+                state.projectiles.push({ type: 'lightning', start: {x: t.x, y: t.y}, end: {x: target.x, y: target.y}, life: 200 });
+              }
+              performAttack(t, target);
             }
           }
         });
+
+        // NOVO: Inimigos agora atacam as tropas!
+        state.enemies.forEach(en => {
+          if (state.troops.length > 0) {
+            const target = state.troops.reduce((prev, curr) => 
+              Math.hypot(curr.x - en.x, curr.y - en.y) < Math.hypot(prev.x - en.x, prev.y - en.y) ? curr : prev
+            );
+            const dist = Math.hypot(target.x - en.x, target.y - en.y);
+            const range = en.radius + target.radius + 10;
+            
+            if (dist < range) {
+              target.hp -= 15; // Inimigo bate tirando 15 de vida
+              target.shake = 15;
+              state.floatingTexts.push({
+                x: target.x + (Math.random() * 20 - 10), y: target.y - 40,
+                text: `-15`, color: '#ef4444', life: 1.0, vy: -1, isCrit: false
+              });
+            }
+          }
+        });
+      }
+
+      // 2. Atualizar Inimigos (Agora eles perseguem as tropas ativamente)
+      state.enemies.forEach(en => {
+        let targetX = canvas.width / 2;
+        let targetY = canvas.height;
+        
+        if (state.troops.length > 0) {
+          const target = state.troops.reduce((prev, curr) => 
+            Math.hypot(curr.x - en.x, curr.y - en.y) < Math.hypot(prev.x - en.x, prev.y - en.y) ? curr : prev
+          );
+          targetX = target.x;
+          targetY = target.y;
+        }
+
+        const dx = targetX - en.x;
+        const dy = targetY - en.y;
+        const distToTarget = Math.hypot(dx, dy);
+        
+        // Só anda se não estiver encostado (evita que fiquem exatamente em cima um do outro)
+        if (distToTarget > en.radius + 20) {
+          en.x += (dx / distToTarget) * 0.4;
+          en.y += (dy / distToTarget) * 0.4 + 0.5;
+        }
       });
 
+      // Gerenciar Mortes (Explosão de Partículas)
+      state.enemies.forEach(en => {
+        if (en.hp <= 0) spawnParticles(en.x, en.y, '#ef4444', 20);
+      });
       state.enemies = state.enemies.filter(en => en.hp > 0);
 
-      // 3. DRAW TROPAS ALIADAS
+      // NOVO: Gerenciar Mortes das suas Tropas
+      state.troops.forEach(t => {
+        if (t.hp <= 0) spawnParticles(t.x, t.y, '#3b82f6', 20);
+      });
+      state.troops = state.troops.filter(t => t.hp > 0);
+
+      // 3. Atualizar Efeitos (Física de Partículas e Textos)
+      state.particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.life -= 0.02; });
+      state.particles = state.particles.filter(p => p.life > 0);
+
+      state.floatingTexts.forEach(ft => { ft.y += ft.vy; ft.life -= 0.015; });
+      state.floatingTexts = state.floatingTexts.filter(ft => ft.life > 0);
+
+      state.projectiles.forEach(p => { p.life -= 16.6; }); // -1 frame
+      state.projectiles = state.projectiles.filter(p => p.life > 0);
+    };
+
+    // =======================================================
+    // 2. DRAW LOOP (Apenas Renderização Visual)
+    // =======================================================
+    const draw = (timestamp) => {
+      const state = gameState.current;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Helper interno para HP Bars
+      const drawHPBar = (x, y, hp, maxHp) => {
+        const width = 40; const height = 6; const percent = Math.max(0, hp / maxHp);
+        ctx.fillStyle = '#111827'; ctx.fillRect(x - width/2, y, width, height); // Bg preto sólido
+        ctx.fillStyle = percent > 0.5 ? '#10b981' : percent > 0.2 ? '#f59e0b' : '#ef4444';
+        ctx.fillRect(x - width/2, y, width * percent, height);
+      };
+
+      // 1. DRAW TROPAS ALIADAS (Rainbow Trails e Auras)
       state.troops.filter(t => t.class === 'warrior').forEach(t => {
         if (t.trail.length > 1) {
-          ctx.beginPath();
-          ctx.moveTo(t.trail[0].x, t.trail[0].y);
-          for(let i = 1; i < t.trail.length; i++) ctx.lineTo(t.trail[i].x, t.trail[i].y);
-          ctx.strokeStyle = `hsla(${(timestamp / 5) % 360}, 100%, 60%, 0.5)`;
-          ctx.lineWidth = t.radius;
-          ctx.lineCap = 'round';
-          ctx.stroke();
+          for(let i = 1; i < t.trail.length; i++) {
+            ctx.beginPath();
+            ctx.moveTo(t.trail[i-1].x, t.trail[i-1].y);
+            ctx.lineTo(t.trail[i].x, t.trail[i].y);
+            ctx.strokeStyle = `hsla(${(i * 20 + timestamp / 2) % 360}, 100%, 60%, ${i / t.trail.length})`;
+            ctx.lineWidth = t.radius * (i / t.trail.length); // Afina no final
+            ctx.lineCap = 'round';
+            ctx.stroke();
+          }
         }
       });
 
       state.troops.forEach(t => {
+        // Efeito de tremor para a tropa sofrendo dano
+        let drawX = t.x; 
+        let drawY = t.y;
+        if (t.shake > 0) {
+          drawX += (Math.random() - 0.5) * 8;
+          drawY += (Math.random() - 0.5) * 8;
+          t.shake--;
+        }
+
         if (t.class === 'healer') {
           const pulse = (Math.sin(timestamp / 200) + 1) / 2;
           ctx.beginPath();
-          ctx.arc(t.x, t.y, 60 + pulse * 60, 0, Math.PI * 2);
+          ctx.arc(drawX, drawY, 60 + pulse * 60, 0, Math.PI * 2);
           ctx.strokeStyle = `rgba(74, 222, 128, ${(1 - pulse) * 0.3})`;
           ctx.lineWidth = 3;
           ctx.stroke();
         } else if (t.class === 'mage') {
           ctx.beginPath();
-          ctx.arc(t.x, t.y, 150, 0, Math.PI * 2);
+          ctx.arc(drawX, drawY, 150, 0, Math.PI * 2);
           ctx.fillStyle = 'rgba(168, 85, 247, 0.08)';
           ctx.fill();
         }
 
         ctx.beginPath();
-        ctx.arc(t.x, t.y, t.radius, 0, Math.PI * 2);
+        ctx.arc(drawX, drawY, t.radius, 0, Math.PI * 2);
         ctx.fillStyle = t.class === 'healer' ? '#10b981' : t.class === 'mage' ? '#9333ea' : '#3b82f6';
         ctx.fill();
         ctx.strokeStyle = '#ffffff20';
@@ -207,15 +313,46 @@ const LumiWarfare = ({ allies = ['人', '水', '火'] }) => {
         ctx.font = 'bold 26px "Noto Serif SC", serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(t.char, t.x, t.y);
+        ctx.fillText(t.char, drawX, drawY);
 
-        drawHPBar(t.x, t.y - t.radius - 12, t.hp, t.maxHp);
+        drawHPBar(drawX, drawY - 45, t.hp, t.maxHp);
       });
 
-      // 4. DRAW INIMIGOS
+      // 2. DRAW PROJÉTEIS (Lightning Jagged Lines)
+      state.projectiles.forEach(p => {
+        if (p.type === 'lightning') {
+          ctx.beginPath();
+          ctx.moveTo(p.start.x, p.start.y);
+          const segments = 6;
+          for (let i = 1; i <= segments; i++) {
+            let nx = p.start.x + (p.end.x - p.start.x) * (i / segments);
+            let ny = p.start.y + (p.end.y - p.start.y) * (i / segments);
+            if (i < segments) {
+              nx += (Math.random() - 0.5) * 30; // Linha Serrilhada a cada frame
+              ny += (Math.random() - 0.5) * 30;
+            }
+            ctx.lineTo(nx, ny);
+          }
+          ctx.strokeStyle = '#A855F7';
+          ctx.lineWidth = 3;
+          ctx.shadowBlur = 15;
+          ctx.shadowColor = '#A855F7';
+          ctx.stroke();
+          ctx.shadowBlur = 0; // Reset
+        }
+      });
+
+      // 3. DRAW INIMIGOS (com Shake de Colisão)
       state.enemies.forEach(en => {
+        let drawX = en.x; let drawY = en.y;
+        if (en.shake > 0) {
+          drawX += (Math.random() - 0.5) * 8; // Efeito Tremor
+          drawY += (Math.random() - 0.5) * 8;
+          en.shake--;
+        }
+
         ctx.beginPath();
-        ctx.arc(en.x, en.y, en.radius, 0, Math.PI * 2);
+        ctx.arc(drawX, drawY, en.radius, 0, Math.PI * 2);
         ctx.fillStyle = '#7f1d1d';
         ctx.fill();
         ctx.strokeStyle = '#ef4444';
@@ -226,15 +363,22 @@ const LumiWarfare = ({ allies = ['人', '水', '火'] }) => {
         ctx.font = '22px "Noto Serif SC", serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(en.char, en.x, en.y);
+        ctx.fillText(en.char, drawX, drawY);
         
-        drawHPBar(en.x, en.y - en.radius - 12, en.hp, en.maxHp);
+        drawHPBar(drawX, drawY - 40, en.hp, en.maxHp);
       });
 
-      // 5. DRAW TEXTOS DE DANO/CURA
+      // 4. DRAW PARTÍCULAS E TEXTOS (Juice UI)
+      state.particles.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = Math.max(0, p.life);
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+      });
+
       state.floatingTexts.forEach(ft => {
-        ft.y -= 1.5;
-        ft.life -= 0.015;
         ctx.fillStyle = ft.color;
         ctx.globalAlpha = Math.max(0, ft.life);
         ctx.font = ft.isCrit ? 'bold 22px Arial' : '18px Arial';
@@ -242,7 +386,14 @@ const LumiWarfare = ({ allies = ['人', '水', '火'] }) => {
         ctx.fillText(ft.text, ft.x, ft.y);
         ctx.globalAlpha = 1.0;
       });
-      state.floatingTexts = state.floatingTexts.filter(ft => ft.life > 0);
+    };
+
+    // =======================================================
+    // ENGINE HEARTBEAT
+    // =======================================================
+    const loop = (timestamp) => {
+      update(timestamp);
+      draw(timestamp);
 
       animationFrameId = requestAnimationFrame(loop);
     };
