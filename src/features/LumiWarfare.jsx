@@ -8,10 +8,17 @@ const LumiWarfare = ({ allies = ['人', '水', '火'] }) => {
   const gameState = useRef({
     troops: [],
     enemies: [],
+    particles: [],     // Array de partículas das explosões
+    particles: ts: [],
+    projec[ile],       // Array dos raios e ataques // Array de partículas das explosões
     floatingTexts: [],
-    draggingId: null,
+    projectiles: [],   // Array dos raios e ataques
+    draggingId:,
+    lastBeat: 0        // Controle do BPM (Sincronia rítmica) null,
     pointerX: 0,
     pointerY: 0
+    pointerY: 0,
+    lastBeat: 0        // Controle do BPM (Sincronia rítmica)
   });
 
   useEffect(() => {
