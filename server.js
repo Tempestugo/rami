@@ -32,3 +32,4 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Lumi Server a rodar na porta ${PORT}`);
 });
+app.get('/api/phrase', phraseHandler);
