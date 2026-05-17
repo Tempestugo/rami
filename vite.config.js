@@ -11,8 +11,14 @@ export default defineConfig({
       }
     }
   },
+  optimizeDeps: { 
+    exclude: ['esbuild'] 
+  },
   build: {
     outDir: 'dist',
     emptyOutDir: true,
+    minify: 'terser',
+    terserOptions: { compress: { drop_console: true } },
+    rollupOptions: { output: { manualChunks: undefined } }
   }
 })

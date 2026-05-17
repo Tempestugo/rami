@@ -9,14 +9,10 @@ const LumiWarfare = ({ allies = ['人', '水', '火'] }) => {
     troops: [],
     enemies: [],
     particles: [],     // Array de partículas das explosões
-    particles: ts: [],
-    projec[ile],       // Array dos raios e ataques // Array de partículas das explosões
-    floatingTexts: [],
+    floatingTexts: [], // Textos flutuantes
     projectiles: [],   // Array dos raios e ataques
-    draggingId:,
-    lastBeat: 0        // Controle do BPM (Sincronia rítmica) null,
+    draggingId: null,
     pointerX: 0,
-    pointerY: 0
     pointerY: 0,
     lastBeat: 0        // Controle do BPM (Sincronia rítmica)
   });
@@ -136,8 +132,9 @@ const LumiWarfare = ({ allies = ['人', '水', '火'] }) => {
             Math.hypot(curr.x - t.x, curr.y - t.y) < Math.hypot(prev.x - t.x, prev.y - t.y) ? curr : prev
           );
           // Smooth Pursuit (Lerp)
-          t.x += (target.x - t.x) * 0.02;
-          t.y += (target.y - t.y) * 0.02;
+          const speed = 0.03;
+          t.x += (target.x - t.x) * speed;
+          t.y += (target.y - t.y) * speed;
         }
 
         t.damageMultiplier = 1; // Reseta buff do mago
@@ -247,7 +244,10 @@ const LumiWarfare = ({ allies = ['人', '水', '火'] }) => {
       state.particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.life -= 0.02; });
       state.particles = state.particles.filter(p => p.life > 0);
 
-      state.floatingTexts.forEach(ft => { ft.y += ft.vy; ft.life -= 0.015; });
+      state.floatingTexts.forEach(ft => { 
+        ft.y -= 1.2; // Sobe suavemente
+        ft.life -= 0.02; // Fade out 
+      });
       state.floatingTexts = state.floatingTexts.filter(ft => ft.life > 0);
 
       state.projectiles.forEach(p => { p.life -= 16.6; }); // -1 frame
@@ -328,22 +328,20 @@ const LumiWarfare = ({ allies = ['人', '水', '火'] }) => {
       // 2. DRAW PROJÉTEIS (Lightning Jagged Lines)
       state.projectiles.forEach(p => {
         if (p.type === 'lightning') {
+          ctx.strokeStyle = '#a855f7';
+          ctx.lineWidth = 2.5;
+          ctx.shadowBlur = 20;
+          ctx.shadowColor = '#a855f7';
           ctx.beginPath();
           ctx.moveTo(p.start.x, p.start.y);
-          const segments = 6;
-          for (let i = 1; i <= segments; i++) {
-            let nx = p.start.x + (p.end.x - p.start.x) * (i / segments);
-            let ny = p.start.y + (p.end.y - p.start.y) * (i / segments);
-            if (i < segments) {
-              nx += (Math.random() - 0.5) * 30; // Linha Serrilhada a cada frame
-              ny += (Math.random() - 0.5) * 30;
-            }
-            ctx.lineTo(nx, ny);
+          
+          let currentX = p.start.x;
+          let currentY = p.start.y;
+          for (let i = 0; i < 6; i++) {
+            currentX += (p.end.x - currentX) / (6 - i) + (Math.random() * 30 - 15);
+            currentY += (p.end.y - currentY) / (6 - i) + (Math.random() * 30 - 15);
+            ctx.lineTo(currentX, currentY);
           }
-          ctx.strokeStyle = '#A855F7';
-          ctx.lineWidth = 3;
-          ctx.shadowBlur = 15;
-          ctx.shadowColor = '#A855F7';
           ctx.stroke();
           ctx.shadowBlur = 0; // Reset
         }
