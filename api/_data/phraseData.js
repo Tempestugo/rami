@@ -3,7 +3,7 @@
  * Vercel serverless functions use CommonJS.
  */
 
-const phraseData = [
+export const phraseData = [
   // HSK 1 Phrases
   { phrase: '你好', pinyin: 'nǐ hǎo', translation: 'Hello', hsk: 1, chars: ['你', '好'] },
   { phrase: '我爱你', pinyin: 'wǒ ài nǐ', translation: 'I love you', hsk: 1, chars: ['我', '你'] },
@@ -60,5 +60,3 @@ const phraseData = [
   { phrase: '一月', pinyin: 'yī yuè', translation: 'January', hsk: 1, chars: ['一', '月'] },
   { phrase: '知道', pinyin: 'zhī dào', translation: 'To know / aware', hsk: 2, chars: ['知'] },
 ];
-
-module.exports = { phraseData };
