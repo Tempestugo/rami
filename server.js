@@ -2,15 +2,17 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Imports dos Handlers (Caminhos corrigidos conforme o seu sistema de arquivos)
+// Imports dos Handlers
 import graphHandler from './api/graph/index.js';
 import charHandler from './api/graph/character/[id].js';
-import phraseHandler from './api/phrases/build.js'; // Corrigido: plural 'phrases' e arquivo 'build.js'
+import phraseHandler from './api/phrases/build.js'; 
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+
+// IMPORTANTE: Para ler o corpo (body) do POST enviado pelo Axios
 app.use(express.json());
 
 // --- Rotas da API ---
@@ -25,15 +27,18 @@ app.get('/api/graph/character/:id', (req, res) => {
     charHandler(req, res);
 });
 
-// Rota de Formar Frase (Resolve o erro 404 do Axios)
+/** * CORREÇÃO AQUI: 
+ * O frontend chama POST /api/phrases/build 
+ */
+app.post('/api/phrases/build', phraseHandler);
+
+// Opcional: manter essa rota se você usar em outros lugares
 app.get('/api/phrase', phraseHandler);
 
 // --- Servir o Frontend ---
 
-// Servir os arquivos estáticos do Vite (pasta dist)
 app.use(express.static(path.join(__dirname, 'dist')));
 
-// Redirecionar qualquer outra rota para o index.html (SPA)
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
