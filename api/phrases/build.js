@@ -1,10 +1,10 @@
 /**
  * /api/phrases/build.js  →  POST /api/phrases/build
- * Finds real phrases containing the selected characters.
- * Body: { chars: ['我', '吃', '水', '果'] }
+ * Encontra frases reais contendo os caracteres selecionados.
  */
 
-const { phraseData } = require('../_data/phraseData');
+// 1. Importação moderna (ESM)
+import { phraseData } from '../_data/phraseData.js';
 
 function findPhrases(charIds, limit = 5) {
   if (!charIds || charIds.length === 0) return [];
@@ -23,19 +23,24 @@ function findPhrases(charIds, limit = 5) {
     .slice(0, limit);
 }
 
-module.exports = function handler(req, res) {
+// 2. Exportação padrão (O que o seu server.js está esperando)
+export default function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') {
+  
+  // Note: Se o seu frontend estiver enviando um GET, mude aqui para GET
+  // Mas o comentário original dizia POST.
+  if (req.method !== 'POST' && req.method !== 'GET') {
     return res.status(405).json({ success: false, message: 'Method not allowed' });
   }
 
-  const { chars } = req.body || {};
+  // Pega os caracteres tanto do body (POST) quanto da query (GET) por garantia
+  const chars = req.body?.chars || req.query?.chars;
 
-  if (!Array.isArray(chars) || chars.length === 0) {
+  if (!chars || !Array.isArray(chars) || chars.length === 0) {
     return res.status(400).json({ success: false, message: 'Provide a non-empty array of characters.' });
   }
 
@@ -46,4 +51,4 @@ module.exports = function handler(req, res) {
     console.error('Phrase build error:', err);
     return res.status(500).json({ success: false, message: 'Phrase search failed.' });
   }
-};
+}
