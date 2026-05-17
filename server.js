@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import graphHandler from './api/graph/index.js';
 import charHandler from './api/graph/character/[id].js';
 import phraseHandler from './api/phrases/build.js'; 
+import gameLogicHandler from './api/game/logic.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,6 +35,9 @@ app.post('/api/phrases/build', phraseHandler);
 
 // Opcional: manter essa rota se você usar em outros lugares
 app.get('/api/phrase', phraseHandler);
+
+// --- Rotas de Batalha ---
+app.post('/api/game/attack', gameLogicHandler);
 
 // --- Servir o Frontend ---
 
