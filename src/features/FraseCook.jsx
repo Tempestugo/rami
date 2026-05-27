@@ -141,56 +141,42 @@ export default function FraseCook({ initialHsk = 1, initialContext = null }) {
 
   // ─── Seleciona tile ─────────────────────────────────────────────────────────
   function selectTile(tile) {
-    if (tile.used) return;
-
-    // Deseleciona se já selecionado
-    if (selected.find(s => s.id === tile.id)) {
-      setSelected(prev => prev.filter(s => s.id !== tile.id));
-      return;
-    }
-
-    const next = [...selected, tile];
-    setSelected(next);
-    tryMatch(next);
+    if (selected.some(s => s.id === tile.id)) return; // já selecionado nesta tentativa
+    if (selected.length >= 5) return; // limite de caracteres
+    setSelected([...selected, tile]);
   }
 
-  function tryMatch(sel) {
-    const chars = sel.map(s => s.char);
+  function deselectTile(id) {
+    setSelected(prev => prev.filter(t => t.id !== id));
+  }
 
-    for (let i = 0; i < phrases.length; i++) {
-      if (solved.has(i)) continue;
-      const phrase = phrases[i];
+  function triggerShake(msg) {
+    setFlash({ type: 'wrong', msg });
+    setShakePool(true);
+    clearTimeout(shakeTimer.current);
+    shakeTimer.current = setTimeout(() => {
+      setShakePool(false);
+      setFlash(null);
+      setSelected([]);
+    }, 600);
+  }
 
-      if (chars.length === phrase.chars.length &&
-          chars.every((c, idx) => c === phrase.chars[idx])) {
-        // ✅ Acerto
-        setSolved(prev => new Set([...prev, i]));
-        setFlash({ idx: i, type: 'correct' });
-        setScore(s => s + phrase.chars.length * 15);
-        setTiles(prev => prev.map(t =>
-          sel.find(s => s.id === t.id) ? { ...t, used: true } : t
-        ));
+  function submitWord() {
+    const charsStr = selected.map(s => s.char).join('');
+    const idx = phrases.findIndex(p => p.chars.join('') === charsStr);
+
+    if (idx !== -1) {
+      if (solved.has(idx)) {
+        triggerShake('Já encontrado!');
+      } else {
+        setSolved(prev => new Set([...prev, idx]));
+        setFlash({ idx, type: 'correct' });
+        setScore(s => s + selected.length * 15);
         setSelected([]);
         setTimeout(() => setFlash(null), 900);
-        return;
       }
-    }
-
-    // Se chegou no máximo de chars sem acertar nada
-    const maxUnsolved = Math.max(
-      ...phrases.filter((_, i) => !solved.has(i)).map(p => p.chars.length),
-      0
-    );
-    if (sel.length >= maxUnsolved) {
-      // ❌ Erro
-      setFlash({ idx: -1, type: 'wrong' });
-      setShakePool(true);
-      clearTimeout(shakeTimer.current);
-      shakeTimer.current = setTimeout(() => {
-        setShakePool(false);
-        setFlash(null);
-        setSelected([]);
-      }, 550);
+    } else {
+      triggerShake('Palavra inválida');
     }
   }
 
