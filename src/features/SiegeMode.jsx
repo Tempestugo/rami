@@ -11,7 +11,7 @@ import HanziWriter from 'hanzi-writer';
 // ─── Config ──────────────────────────────────────────────────────────────────
 const OFUDA_W   = 80;
 const OFUDA_H   = 120;
-const WRITER_SZ = 220;
+const WRITER_SZ = typeof window !== 'undefined' && window.innerWidth < 480 ? 180 : 220;
 
 const OFUDA_VARIANTS = [
   { idle: 'ofuda_wood_idle',  hit: 'ofuda_wood_hit',   charColor: '#3b1f08' },
@@ -96,7 +96,10 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
 
   // ─── HanziWriter ───────────────────────────────────────────────────────────
   const initWriter = useCallback((char, onComplete) => {
-    if (!writerDivRef.current) return;
+    if (!writerDivRef.current) {
+      console.warn('writerDivRef não montado ainda');
+      return;
+    }
     if (writerRef.current) {
       try { writerRef.current.cancelQuiz(); } catch(_) {}
       writerDivRef.current.innerHTML = '';
@@ -106,6 +109,7 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
       showOutline: true,
       strokeColor: '#f5c842', outlineColor: '#ffffff22',
       drawingColor: '#f5c842', drawingWidth: 5,
+      showHintAfterMisses: 3,
     });
     writerRef.current.quiz({
       onMistake: () => document.dispatchEvent(
@@ -136,7 +140,9 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
     setPhase('drawing');
     setActiveChar(hit.char);
     setActiveHint({ pinyin: hit.pinyin, meaning: hit.meaning });
-    initWriter(hit.char, () => destroyEnemy(hit.id));
+    setTimeout(() => {
+      initWriter(hit.char, () => destroyEnemy(hit.id));
+    }, 50); // Timeout para garantir que o react montou a div
   }, [initWriter]);
 
   // ─── Destruir ──────────────────────────────────────────────────────────────
@@ -305,25 +311,49 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
       </div>
 
       {phase === 'drawing' && activeChar && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/75 backdrop-blur-sm">
-          <div className="flex flex-col items-center gap-4 bg-ink-900 border border-white/10 rounded-2xl p-6 shadow-2xl">
-            <div className="text-center">
-              <p className="text-gold-300 font-display text-2xl font-bold">{activeChar}</p>
-              {activeHint && <p className="text-ink-300 text-sm mt-1">{activeHint.pinyin} · {activeHint.meaning}</p>}
-            </div>
-            <div ref={writerDivRef} className="rounded-xl border border-white/10 bg-ink-950"
-              style={{ width: WRITER_SZ, height: WRITER_SZ }} />
-            <p className="text-ink-400 text-xs">Desenhe na ordem correta dos traços</p>
-            <div className="flex gap-3">
-              <button onClick={() => writerRef.current?.undo?.()}
-                className="px-3 py-1.5 text-xs rounded-lg border border-white/10 text-ink-300 hover:bg-white/5 transition">
-                ↩ Desfazer
-              </button>
-              <button onClick={cancelDrawing}
-                className="px-3 py-1.5 text-xs rounded-lg border border-red-500/40 text-red-400 hover:bg-red-500/10 transition">
-                ✕ Cancelar (Esc)
-              </button>
-            </div>
+        <div
+          className="absolute z-20 flex flex-col items-center gap-3 rounded-2xl p-4 shadow-2xl border border-white/15"
+          style={{
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            background: 'rgba(10, 10, 18, 0.82)',
+            backdropFilter: 'blur(6px)',
+            width: 'min(320px, 90vw)',
+          }}
+          onClick={e => e.stopPropagation()}
+        >
+          {/* Cabeçalho compacto */}
+          <div className="text-center">
+            <p className="text-gold-300 font-display text-3xl font-bold leading-none">{activeChar}</p>
+            {activeHint && (
+              <p className="text-ink-300 text-xs mt-1">{activeHint.pinyin} · {activeHint.meaning}</p>
+            )}
+          </div>
+
+          {/* Área de desenho — menor que o modal anterior */}
+          <div
+            ref={writerDivRef}
+            className="rounded-xl border border-white/10"
+            style={{ width: WRITER_SZ, height: WRITER_SZ, background: 'rgba(255,255,255,0.03)' }}
+          />
+
+          <p className="text-ink-400 text-xs">Desenhe na ordem correta dos traços</p>
+
+          {/* Botões compactos em linha */}
+          <div className="flex gap-2 w-full">
+            <button
+              onClick={() => writerRef.current?.undo?.()}
+              className="flex-1 py-1.5 text-xs rounded-lg border border-white/10 text-ink-300 hover:bg-white/5 transition"
+            >
+              ↩ Desfazer
+            </button>
+            <button
+              onClick={cancelDrawing}
+              className="flex-1 py-1.5 text-xs rounded-lg border border-red-500/40 text-red-400 hover:bg-red-500/10 transition"
+            >
+              ✕ Esc
+            </button>
           </div>
         </div>
       )}
