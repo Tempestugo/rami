@@ -303,7 +303,10 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
   return (
     <div ref={containerRef} className="w-full h-full relative rounded-2xl border border-white/10 bg-ink-950 overflow-hidden" style={{ minHeight: 400 }}>
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full"
-        style={{ cursor: phase === 'playing' ? 'crosshair' : 'default' }}
+        style={{
+          cursor: phase === 'playing' ? 'crosshair' : 'default',
+          pointerEvents: phase === 'drawing' ? 'none' : 'auto',
+        }}
         onClick={handleCanvasClick}
       />
 
