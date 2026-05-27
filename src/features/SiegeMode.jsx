@@ -11,7 +11,7 @@ import HanziWriter from 'hanzi-writer';
 // ─── Config ──────────────────────────────────────────────────────────────────
 const OFUDA_W   = 80;
 const OFUDA_H   = 120;
-const WRITER_SZ = typeof window !== 'undefined' && window.innerWidth < 480 ? 180 : 220;
+const WRITER_SZ = 220;
 
 const OFUDA_VARIANTS = [
   { idle: 'ofuda_wood_idle',  hit: 'ofuda_wood_hit',   charColor: '#3b1f08' },
@@ -96,10 +96,7 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
 
   // ─── HanziWriter ───────────────────────────────────────────────────────────
   const initWriter = useCallback((char, onComplete) => {
-    if (!writerDivRef.current) {
-      console.warn('writerDivRef não montado ainda');
-      return;
-    }
+    if (!writerDivRef.current) return;
     if (writerRef.current) {
       try { writerRef.current.cancelQuiz(); } catch(_) {}
       writerDivRef.current.innerHTML = '';
@@ -109,7 +106,6 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
       showOutline: true,
       strokeColor: '#f5c842', outlineColor: '#ffffff22',
       drawingColor: '#f5c842', drawingWidth: 5,
-      showHintAfterMisses: 3,
     });
     writerRef.current.quiz({
       onMistake: () => document.dispatchEvent(
@@ -123,6 +119,9 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
   }, []);
 
   // ─── Targeting ─────────────────────────────────────────────────────────────
+  // pendingWriter guarda char+callback até o writerDivRef estar no DOM
+  const pendingWriter = useRef(null);
+
   const handleCanvasClick = useCallback((e) => {
     const state = gameState.current;
     if (state.phase !== 'playing') return;
@@ -137,13 +136,21 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
     if (!hit) return;
     state.activeTarget = hit;
     state.phase = 'drawing';
+    // Salva o que inicializar — o useEffect vai chamar initWriter
+    // APÓS o React montar o writerDivRef no DOM
+    pendingWriter.current = hit;
     setPhase('drawing');
     setActiveChar(hit.char);
     setActiveHint({ pinyin: hit.pinyin, meaning: hit.meaning });
-    setTimeout(() => {
-      initWriter(hit.char, () => destroyEnemy(hit.id));
-    }, 50); // Timeout para garantir que o react montou a div
-  }, [initWriter]);
+  }, []);
+
+  // Roda DEPOIS que o React renderizou o overlay (writerDivRef montado)
+  useEffect(() => {
+    if (phase !== 'drawing' || !pendingWriter.current || !writerDivRef.current) return;
+    const hit = pendingWriter.current;
+    pendingWriter.current = null;
+    initWriter(hit.char, () => destroyEnemy(hit.id));
+  }, [phase, initWriter, destroyEnemy]);
 
   // ─── Destruir ──────────────────────────────────────────────────────────────
   const destroyEnemy = useCallback((id) => {
@@ -317,30 +324,24 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            background: 'rgba(10, 10, 18, 0.82)',
-            backdropFilter: 'blur(6px)',
-            width: 'min(320px, 90vw)',
+            background: 'rgba(8, 8, 16, 0.78)',
+            backdropFilter: 'blur(5px)',
+            width: 'min(300px, 88vw)',
           }}
           onClick={e => e.stopPropagation()}
         >
-          {/* Cabeçalho compacto */}
           <div className="text-center">
             <p className="text-gold-300 font-display text-3xl font-bold leading-none">{activeChar}</p>
             {activeHint && (
               <p className="text-ink-300 text-xs mt-1">{activeHint.pinyin} · {activeHint.meaning}</p>
             )}
           </div>
-
-          {/* Área de desenho — menor que o modal anterior */}
           <div
             ref={writerDivRef}
             className="rounded-xl border border-white/10"
             style={{ width: WRITER_SZ, height: WRITER_SZ, background: 'rgba(255,255,255,0.03)' }}
           />
-
           <p className="text-ink-400 text-xs">Desenhe na ordem correta dos traços</p>
-
-          {/* Botões compactos em linha */}
           <div className="flex gap-2 w-full">
             <button
               onClick={() => writerRef.current?.undo?.()}
