@@ -2,13 +2,12 @@
  * FraseCook.jsx — Modo Frase (Word Cookies com hanzi)
  *
  * Mecânica: tiles de hanzi embaixo, frases com slots vazios em cima.
- * O jogador toca os hanzi na ordem certa para preencher cada frase.
- * Caracteres podem se repetir no pool (gerado com base nas frases).
+ * O jogador recebe 5 tiles fixos e precisa descobrir todas as frases 
+ * possíveis formadas a partir de combinações desses caracteres (tipo Word Cookies).
  *
  * Props:
  *   hskLevel  {number}  nível máximo HSK (default: 1)
  *   context   {string}  tag temática ex: 'cozinha', 'natureza' (default: null = misto)
- *   phraseCount {number} quantas frases por rodada (default: 4)
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -25,53 +24,68 @@ function shuffle(arr) {
   return a;
 }
 
-// Filtra frases por HSK e contexto. Prioriza frases cujos chars existem no HSK <= level.
-function selectPhrases(hskLevel, context, count) {
-  let pool = phraseData.filter(p => p.hsk <= hskLevel);
+// Descobre TODAS as frases que podem ser montadas apenas com a contagem de tiles disponíveis
+function findAllPhrases(tiles, pool) {
+  const tileFreq = {};
+  tiles.forEach(t => tileFreq[t] = (tileFreq[t] || 0) + 1);
 
-  // filtro de contexto via array de tags definido no phraseData
-  if (context) {
-    const filtered = pool.filter(p => p.tags?.includes(context));
-    if (filtered.length >= count) pool = filtered;
-  }
-
-  // Prefere frases com 2–4 chars (mais jogáveis)
-  const sized = pool.filter(p => p.chars.length >= 2 && p.chars.length <= 4);
-  const source = sized.length >= count ? sized : pool;
-
-  return shuffle(source).slice(0, count);
+  return pool.filter(p => {
+    if (p.chars.length < 2) return false; // Ignora caracteres soltos, apenas frases
+    const pFreq = {};
+    for (let c of p.chars) pFreq[c] = (pFreq[c] || 0) + 1;
+    
+    for (let c in pFreq) {
+      if (!tileFreq[c] || tileFreq[c] < pFreq[c]) return false;
+    }
+    return true;
+  });
 }
 
-// Gera o pool de tiles: todos os chars das frases + distractores aleatórios
-// Garante que chars repetidos nas frases aparecem N vezes no pool.
-function buildTilePool(phrases, hskLevel) {
-  // Conta quantas vezes cada char é necessário (máximo entre todas as frases)
-  const needed = {};
-  phrases.forEach(p => {
-    const freq = {};
-    p.chars.forEach(c => { freq[c] = (freq[c] || 0) + 1; });
-    Object.entries(freq).forEach(([c, n]) => {
-      needed[c] = Math.max(needed[c] || 0, n);
-    });
-  });
+// Gera uma rodada: 5 tiles e todas as frases possíveis com eles
+function generateRound(hskLevel, context) {
+  let pool = phraseData.filter(p => p.hsk <= hskLevel);
+  if (pool.length === 0) pool = phraseData; // fallback
 
-  // Expande em array
-  const required = [];
-  Object.entries(needed).forEach(([c, n]) => {
-    for (let i = 0; i < n; i++) required.push(c);
-  });
+  if (context) {
+    const filtered = pool.filter(p => p.tags?.includes(context));
+    if (filtered.length >= 2) pool = filtered;
+  }
 
-  // Adiciona 3–5 distractores do mesmo HSK que não estejam nas frases
-  const usedSet = new Set(Object.keys(needed));
-  const distractors = phraseData
-    .filter(p => p.hsk <= hskLevel)
-    .flatMap(p => p.chars)
-    .filter(c => !usedSet.has(c));
-  const uniq = [...new Set(distractors)];
-  const extras = shuffle(uniq).slice(0, 4);
+  let bestTiles = [];
+  let bestPhrases = [];
 
-  const allChars = shuffle([...required, ...extras]);
-  return allChars.map((char, i) => ({ id: `tile_${i}_${char}`, char, used: false }));
+  // Tenta encontrar uma combinação que gere entre 3 e 7 palavras
+  for (let attempt = 0; attempt < 50; attempt++) {
+    const seed = pool[Math.floor(Math.random() * pool.length)];
+    let tiles = [...seed.chars];
+
+    // Preenche até ter 5 tiles
+    while (tiles.length < 5) {
+      const rp = pool[Math.floor(Math.random() * pool.length)];
+      tiles.push(rp.chars[Math.floor(Math.random() * rp.chars.length)]);
+    }
+
+    tiles = shuffle(tiles).slice(0, 5);
+    const validPhrases = findAllPhrases(tiles, pool);
+
+    if (validPhrases.length >= 3 && validPhrases.length <= 7) {
+      validPhrases.sort((a, b) => a.chars.length - b.chars.length || a.phrase.localeCompare(b.phrase));
+      return { tiles: tiles.map((char, i) => ({ id: `t_${i}`, char })), phrases: validPhrases };
+    }
+
+    if (validPhrases.length > bestPhrases.length && validPhrases.length <= 10) {
+      bestTiles = tiles;
+      bestPhrases = validPhrases;
+    }
+  }
+
+  bestPhrases.sort((a, b) => a.chars.length - b.chars.length || a.phrase.localeCompare(b.phrase));
+  if (bestPhrases.length > 7) bestPhrases = bestPhrases.slice(0, 7); // Cap máximo visual
+  
+  return {
+    tiles: bestTiles.map((char, i) => ({ id: `t_${i}`, char })),
+    phrases: bestPhrases
+  };
 }
 
 // ─── Componente ──────────────────────────────────────────────────────────────
@@ -94,7 +108,7 @@ export default function FraseCook({ initialHsk = 1, initialContext = null }) {
   const [tiles, setTiles]           = useState([]);
   const [selected, setSelected]     = useState([]); // [{id, char}]
   const [solved, setSolved]         = useState(new Set());
-  const [flash, setFlash]           = useState(null); // {idx, type: 'correct'|'wrong'}
+  const [flash, setFlash]           = useState(null); // {idx, type: 'correct'|'wrong', msg}
   const [score, setScore]           = useState(0);
   const [shakePool, setShakePool]   = useState(false);
   const [complete, setComplete]     = useState(false);
@@ -106,10 +120,9 @@ export default function FraseCook({ initialHsk = 1, initialContext = null }) {
 
   // ─── Inicializa rodada ──────────────────────────────────────────────────────
   const initRound = useCallback(() => {
-    const ps = selectPhrases(hskLevel, context, 4);
-    const ts = buildTilePool(ps, hskLevel);
-    setPhrases(ps);
-    setTiles(ts);
+    const round = generateRound(hskLevel, context);
+    setPhrases(round.phrases);
+    setTiles(round.tiles);
     setSelected([]);
     setSolved(new Set());
     setFlash(null);
@@ -294,78 +307,72 @@ export default function FraseCook({ initialHsk = 1, initialContext = null }) {
               </div>
 
               {/* Tradução — aparece ao resolver ou com hint */}
-              <div className={`text-xs font-body transition-all duration-300 ${
-                isSolved
-                  ? 'text-ink-400 opacity-100'
-                  : isHinted
-                    ? 'text-gold-500/60 opacity-100'
-                    : 'opacity-0'
+              <div className={`text-xs font-body tracking-wide transition-all duration-300 ${
+                isSolved || isHinted ? 'text-ink-400 opacity-100' : 'opacity-0 h-0 overflow-hidden'
               }`}>
                 {phrase.translation}
               </div>
             </div>
           );
         })}
+      </div>
 
-        {/* Preview selecionados */}
-        <div className="flex items-center gap-2 min-h-[36px] mt-2">
-          {selected.length > 0 ? (
-            <>
+      {/* ── Preview selecionados e controles ── */}
+      <div className="flex flex-col items-center shrink-0 min-h-[80px] justify-end pb-4 bg-ink-950">
+        <div className={`text-xs font-bold transition-opacity mb-2 ${flash?.type === 'wrong' ? 'text-red-400 opacity-100' : 'opacity-0'}`}>
+          {flash?.msg || ' '}
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex gap-2 justify-center border-b-2 border-white/10 pb-2 min-w-[150px] px-4">
+            {selected.length === 0 ? (
+              <span className="text-ink-600 text-sm font-body italic my-auto">Toque para formar palavra</span>
+            ) : (
               {selected.map(s => (
-                <span
+                <button
                   key={s.id}
-                  className="font-display text-lg font-bold text-gold-300 border border-gold-500/30 bg-gold-500/08 rounded-lg w-9 h-9 flex items-center justify-center"
-                  style={{ animation: 'fadeUp 0.12s ease' }}
+                  onClick={() => deselectTile(s.id)}
+                  className="w-10 h-10 rounded-lg bg-gold-500/15 border border-gold-500/40 text-gold-300 font-display text-xl flex items-center justify-center transform hover:scale-105 transition-all shadow-md"
                 >
                   {s.char}
-                </span>
+                </button>
               ))}
-              <button
-                onClick={() => setSelected([])}
-                className="text-xs text-ink-500 hover:text-ink-300 ml-1 transition-colors"
-              >
-                ✕
-              </button>
-            </>
-          ) : (
-            <span className="text-xs text-ink-600 font-body">
-              {flash?.type === 'wrong'
-                ? '✕ ordem incorreta'
-                : 'toque os hanzi em ordem →'
-              }
-            </span>
+            )}
+          </div>
+          
+          {/* Botões de Confirmação */}
+          {selected.length > 0 && (
+            <div className="flex gap-1.5 shrink-0">
+              <button onClick={submitWord} className="w-10 h-10 rounded-lg bg-jade-500/20 text-jade-400 border border-jade-500/30 hover:bg-jade-500/30 flex items-center justify-center font-bold shadow-lg">✓</button>
+              <button onClick={() => setSelected([])} className="w-10 h-10 rounded-lg bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 flex items-center justify-center font-bold shadow-lg">✕</button>
+            </div>
           )}
         </div>
       </div>
 
       {/* ── Pool de tiles ── */}
-      <div className="shrink-0 border-t border-white/[0.06] bg-ink-900 px-4 pt-5 pb-6">
+      <div className="shrink-0 border-t border-white/[0.06] bg-ink-900 px-4 pt-6 pb-8">
         <div
           className="flex flex-wrap gap-3 justify-center mb-4"
           style={{ animation: shakePool ? 'shake 0.5s ease' : 'none' }}
         >
           {tiles.map(tile => {
             const isSel  = selectedIds.has(tile.id);
-            const isUsed = tile.used;
 
             return (
               <button
                 key={tile.id}
                 onClick={() => selectTile(tile)}
-                disabled={isUsed}
+                disabled={isSel}
                 className={`
-                  w-13 h-13 rounded-xl font-display text-2xl font-bold
+                  w-14 h-14 rounded-full font-display text-2xl font-bold
                   transition-all duration-150
-                  ${isUsed
-                    ? 'opacity-20 cursor-default border border-white/05 bg-transparent text-ink-600'
-                    : isSel
-                      ? 'border-2 border-gold-400 bg-gold-500/15 text-gold-200 -translate-y-1.5 shadow-lg'
-                      : 'border border-white/15 bg-ink-800 text-ink-100 hover:bg-ink-700 hover:border-white/25 active:scale-95'
+                  ${isSel
+                    ? 'bg-white/5 border border-white/10 text-ink-600 scale-95 shadow-inner'
+                    : 'bg-gold-500/15 border-2 border-gold-400/40 text-gold-200 hover:bg-gold-500/25 hover:scale-105 active:scale-95 shadow-md'
                   }
                 `}
                 style={{
                   width: '52px', height: '52px',
-                  boxShadow: isSel ? '0 4px 14px rgba(217,119,6,0.2)' : undefined,
                 }}
               >
                 {tile.char}
