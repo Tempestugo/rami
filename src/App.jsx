@@ -6,10 +6,11 @@ import PhraseModal from './features/PhraseModal';
 import PhraseSelectionBar from './components/PhraseSelectionBar';
 import LumiWarfare from './features/LumiWarfare'; // Importando o novo componente
 import SiegeMode from './features/SiegeMode';
+import FraseCook from './features/FraseCook';
 
 export default function App() {
   // Estado para alternar entre Explorer, Warfare e Siege
-  const [mode, setMode] = useState('explorer'); // 'explorer' | 'warfare' | 'siege'
+  const [mode, setMode] = useState('explorer'); // 'explorer' | 'warfare' | 'siege' | 'frase'
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-ink-950">
@@ -17,10 +18,16 @@ export default function App() {
       <header className="flex items-center justify-between px-6 py-3 border-b border-white/[0.08] bg-ink-900 z-20 shrink-0">
         <div className="flex items-center gap-3">
           <span className="font-display text-vermillion-500 text-xl font-bold tracking-wide">
-            {mode === 'warfare' ? 'Lumi Warfare' : mode === 'siege' ? 'Modo Cerco' : 'Rami'}
+            {mode === 'warfare' ? 'Lumi Warfare'
+            : mode === 'siege'   ? 'Modo Cerco'
+            : mode === 'frase'   ? '文 FraseCook'
+            : 'Rami'}
           </span>
           <span className="text-ink-400 text-sm font-body">
-            {mode === 'warfare' ? '⚔️ Campo de Batalha' : mode === 'siege' ? '🏯 Defenda desenhando' : '漢字 Graph Explorer'}
+            {mode === 'warfare' ? '⚔️ Campo de Batalha'
+            : mode === 'siege'   ? '🏯 Defenda desenhando'
+            : mode === 'frase'   ? '🀄 Monte frases em chinês'
+            : '漢字 Graph Explorer'}
           </span>
         </div>
 
@@ -56,6 +63,16 @@ export default function App() {
           >
             ⚔ Arena
           </button>
+          <button
+            onClick={() => setMode('frase')}
+            className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all border ${
+              mode === 'frase'
+                ? 'bg-gold-500/10 border-gold-400 text-gold-300'
+                : 'bg-white/5 border-white/10 text-ink-400 hover:bg-white/8'
+            }`}
+          >
+            🀄 Frases
+          </button>
 
           <span className="text-xs text-ink-400 font-mono border border-white/10 px-2 py-0.5 rounded ml-2">
             v1.1.0
@@ -73,6 +90,12 @@ export default function App() {
       {mode === 'siege' && (
         <div className="flex-1 relative overflow-hidden bg-ink-950 p-6">
           <SiegeMode hskLevel={1} waveSize={5} />
+        </div>
+      )}
+
+      {mode === 'frase' && (
+        <div className="flex-1 relative overflow-hidden bg-ink-950">
+          <FraseCook initialHsk={1} initialContext={null} />
         </div>
       )}
 
