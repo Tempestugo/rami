@@ -118,40 +118,6 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
     });
   }, []);
 
-  // ─── Targeting ─────────────────────────────────────────────────────────────
-  // pendingWriter guarda char+callback até o writerDivRef estar no DOM
-  const pendingWriter = useRef(null);
-
-  const handleCanvasClick = useCallback((e) => {
-    const state = gameState.current;
-    if (state.phase !== 'playing') return;
-    const rect = canvasRef.current.getBoundingClientRect();
-    const px = e.clientX - rect.left;
-    const py = e.clientY - rect.top;
-    const hit = state.enemies.find(en =>
-      !en.dying &&
-      Math.abs(px - en.x) < OFUDA_W / 2 &&
-      Math.abs(py - en.y) < OFUDA_H / 2
-    );
-    if (!hit) return;
-    state.activeTarget = hit;
-    state.phase = 'drawing';
-    // Salva o que inicializar — o useEffect vai chamar initWriter
-    // APÓS o React montar o writerDivRef no DOM
-    pendingWriter.current = hit;
-    setPhase('drawing');
-    setActiveChar(hit.char);
-    setActiveHint({ pinyin: hit.pinyin, meaning: hit.meaning });
-  }, []);
-
-  // Roda DEPOIS que o React renderizou o overlay (writerDivRef montado)
-  useEffect(() => {
-    if (phase !== 'drawing' || !pendingWriter.current || !writerDivRef.current) return;
-    const hit = pendingWriter.current;
-    pendingWriter.current = null;
-    initWriter(hit.char, () => destroyEnemy(hit.id));
-  }, [phase, initWriter, destroyEnemy]);
-
   // ─── Destruir ──────────────────────────────────────────────────────────────
   const destroyEnemy = useCallback((id) => {
     const state = gameState.current;
@@ -179,6 +145,38 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
       if (state.enemies.length === 0) { state.phase = 'victory'; setPhase('victory'); onWaveComplete?.(); }
     }, 500);
   }, [onWaveComplete]);
+
+  // ─── Targeting ─────────────────────────────────────────────────────────────
+  // pendingWriter guarda char+callback até o writerDivRef estar no DOM
+  const pendingWriter = useRef(null);
+
+  // Roda DEPOIS que o React renderizou o overlay (writerDivRef montado)
+  useEffect(() => {
+    if (phase !== 'drawing' || !pendingWriter.current || !writerDivRef.current) return;
+    const hit = pendingWriter.current;
+    pendingWriter.current = null;
+    initWriter(hit.char, () => destroyEnemy(hit.id));
+  }, [phase, initWriter, destroyEnemy]);
+
+  const handleCanvasClick = useCallback((e) => {
+    const state = gameState.current;
+    if (state.phase !== 'playing') return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const px = e.clientX - rect.left;
+    const py = e.clientY - rect.top;
+    const hit = state.enemies.find(en =>
+      !en.dying &&
+      Math.abs(px - en.x) < OFUDA_W / 2 &&
+      Math.abs(py - en.y) < OFUDA_H / 2
+    );
+    if (!hit) return;
+    state.activeTarget = hit;
+    state.phase = 'drawing';
+    pendingWriter.current = hit;
+    setPhase('drawing');
+    setActiveChar(hit.char);
+    setActiveHint({ pinyin: hit.pinyin, meaning: hit.meaning });
+  }, []);
 
   const cancelDrawing = useCallback(() => {
     try { writerRef.current?.cancelQuiz(); } catch(_) {}
