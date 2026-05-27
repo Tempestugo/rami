@@ -327,7 +327,7 @@ export default function FraseCook({ initialHsk = 1, initialContext = null }) {
             {selected.length === 0 ? (
               <span className="text-ink-600 text-sm font-body italic my-auto">Toque para formar palavra</span>
             ) : (
-              {selected.map(s => (
+              selected.map(s => (
                 <button
                   key={s.id}
                   onClick={() => deselectTile(s.id)}
@@ -335,7 +335,7 @@ export default function FraseCook({ initialHsk = 1, initialContext = null }) {
                 >
                   {s.char}
                 </button>
-              ))}
+              ))
             )}
           </div>
           
