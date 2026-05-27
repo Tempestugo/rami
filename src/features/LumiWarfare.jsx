@@ -81,16 +81,17 @@ const LumiWarfare = ({ allies = ['人', '水', '火'] }) => {
         const res = await fetch('/api/game/attack', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ attackerHanzi: attacker.char, targetHanzi: target.char })
+          body: JSON.stringify({ attackerId: attacker.char, targetId: target.char, baseDamage: 10 })
         });
         const data = await res.json();
         
         if (data.success) {
-          const finalDamage = data.damage * attacker.damageMultiplier;
+          const { damage, isSynergy } = data.data;
+          const finalDamage = Math.round(damage * attacker.damageMultiplier);
           target.hp -= finalDamage;
           target.shake = 15; // Camera/Impact Shake de 15 frames
 
-          if (data.isEffective) {
+          if (isSynergy) {
             spawnParticles(target.x, target.y, '#fcd34d', 15); // Explosão Dourada
             gameState.current.floatingTexts.push({
               x: target.x + (Math.random() * 20 - 10), y: target.y - 40,

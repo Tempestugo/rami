@@ -1,4 +1,4 @@
-import pool from '../../db.js';
+import pool from './db.js';
 
 export async function calculateSynergyDamage(attackerHanzi, targetHanzi, baseDamage) {
     // Verifica se o atacante é componente direto do alvo através do mapeamento
