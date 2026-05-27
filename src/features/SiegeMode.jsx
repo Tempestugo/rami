@@ -97,16 +97,41 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
   // ─── HanziWriter ───────────────────────────────────────────────────────────
   const initWriter = useCallback((char, onComplete) => {
     if (!writerDivRef.current) return;
+
+    // Limpa instância anterior
     if (writerRef.current) {
       try { writerRef.current.cancelQuiz(); } catch(_) {}
-      writerDivRef.current.innerHTML = '';
     }
+    writerDivRef.current.innerHTML = '';
+
     writerRef.current = HanziWriter.create(writerDivRef.current, char, {
-      width: WRITER_SZ, height: WRITER_SZ, padding: 8,
+      width: WRITER_SZ,
+      height: WRITER_SZ,
+      padding: 16,
       showOutline: true,
-      strokeColor: '#f5c842', outlineColor: '#ffffff22',
-      drawingColor: '#f5c842', drawingWidth: 5,
+      showCharacter: false,
+      strokeColor: '#f5c842',
+      outlineColor: 'rgba(255,255,255,0.15)',
+      drawingColor: '#f5c842',
+      drawingWidth: 6,
+      strokeAnimationSpeed: 1,
+      delayBetweenStrokes: 0,
     });
+
+    // Força pointer-events no SVG interno que o HanziWriter cria
+    requestAnimationFrame(() => {
+      const svg = writerDivRef.current?.querySelector('svg');
+      if (svg) {
+        svg.style.pointerEvents = 'auto';
+        svg.style.touchAction = 'none';
+        svg.style.cursor = 'crosshair';
+        // Força todos os elementos internos a receber eventos
+        svg.querySelectorAll('*').forEach(el => {
+          el.style.pointerEvents = 'auto';
+        });
+      }
+    });
+
     writerRef.current.quiz({
       onMistake: () => document.dispatchEvent(
         new CustomEvent('caru:error', { detail: { char } })
@@ -301,7 +326,7 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
   }, [total]);
 
   return (
-    <div ref={containerRef} className="w-full h-full relative rounded-2xl border border-white/10 bg-ink-950 overflow-hidden" style={{ minHeight: 400 }}>
+    <div ref={containerRef} className="w-full h-full relative rounded-2xl border border-white/10 bg-ink-950" style={{ minHeight: 400, overflow: phase === 'drawing' ? 'visible' : 'hidden' }}>
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full"
         style={{
           cursor: phase === 'playing' ? 'crosshair' : 'default',
@@ -340,7 +365,14 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
           <div
             ref={writerDivRef}
             className="rounded-xl border border-white/10"
-            style={{ width: WRITER_SZ, height: WRITER_SZ, background: 'rgba(255,255,255,0.03)' }}
+            style={{
+              width: WRITER_SZ,
+              height: WRITER_SZ,
+              background: 'rgba(255,255,255,0.03)',
+              touchAction: 'none',
+              userSelect: 'none',
+              cursor: 'crosshair',
+            }}
           />
           <p className="text-ink-400 text-xs">Desenhe na ordem correta dos traços</p>
           <div className="flex gap-2 w-full">
