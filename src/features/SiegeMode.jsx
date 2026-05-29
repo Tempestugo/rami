@@ -12,6 +12,8 @@ import HanziWriter from 'hanzi-writer';
 const OFUDA_W   = 80;
 const OFUDA_H   = 120;
 const WRITER_SZ = 220;
+const ANIM_FRAMES = 16;
+const ANIM_FPS = 8; // 8fps = troca de frame a cada 125ms
 
 const OFUDA_VARIANTS = [
   { idle: 'ofuda_wood_idle',  hit: 'ofuda_wood_hit',   charColor: '#3b1f08' },
@@ -24,12 +26,17 @@ const spriteCache = {};
 function loadSprite(name) {
   if (spriteCache[name]) return spriteCache[name];
   const img = new Image();
-  img.src = `/sprites/${name}.png`;
+  img.src = `/${name}.png`;
   spriteCache[name] = img;
   return img;
 }
 ['ofuda_wood_idle','ofuda_wood_hit','ofuda_stone_idle','ofuda_blood_idle','ofuda_blood_hit']
   .forEach(loadSprite);
+
+const frameNames = Array.from({length: ANIM_FRAMES}, (_, i) => 
+  `sprites_ofuda/frame_${String(i).padStart(3,'0')}`
+);
+frameNames.forEach(loadSprite);
 
 // ─── Zpix loader ──────────────────────────────────────────────────────────────
 let zpixLoaded = false;
@@ -75,6 +82,8 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
       opacity: 1, dying: false,
       variant: OFUDA_VARIANTS[Math.floor(Math.random() * OFUDA_VARIANTS.length)],
       spriteState: 'idle', hitTimer: 0,
+      animFrame: Math.floor(Math.random() * ANIM_FRAMES),
+      animTimer: 0,
     }));
     setTotal(data.length);
     gameState.current.phase = 'playing';
@@ -240,6 +249,13 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
       // UPDATE
       state.enemies.forEach(en => {
         if (en.dying) { en.opacity = Math.max(0, en.opacity - 0.06); return; }
+        
+        en.animTimer += 1;
+        if (en.animTimer >= Math.round(60 / ANIM_FPS)) {
+          en.animFrame = (en.animFrame + 1) % ANIM_FRAMES;
+          en.animTimer = 0;
+        }
+
         en.x -= en.speed; en.wobble += 0.025;
         en.y += Math.sin(en.wobble) * en.drift;
         if (en.hitTimer > 0 && --en.hitTimer === 0) en.spriteState = 'idle';
@@ -269,7 +285,8 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
         ctx.globalAlpha = en.opacity;
         ctx.translate(en.x, en.y);
 
-        const spriteName = (en.spriteState === 'hit' && !en.dying) ? en.variant.hit : en.variant.idle;
+        const frameName = `sprites_ofuda/frame_${String(en.animFrame).padStart(3,'0')}`;
+        const spriteName = (en.spriteState === 'hit' && !en.dying) ? en.variant.hit : frameName;
         const sprite = spriteCache[spriteName];
 
         if (sprite?.complete && sprite.naturalWidth > 0) {
