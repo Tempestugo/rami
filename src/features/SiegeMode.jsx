@@ -69,6 +69,12 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
   const [score, setScore]           = useState(0);
   const [total, setTotal]           = useState(waveSize);
 
+  // Ref para garantir que o onWaveComplete mais recente seja chamado no update loop
+  const onWaveCompleteRef = useRef(onWaveComplete);
+  useEffect(() => {
+    onWaveCompleteRef.current = onWaveComplete;
+  }, [onWaveComplete]);
+
   // ─── Spawn ─────────────────────────────────────────────────────────────────
   function spawnEnemies(data) {
     const canvas = canvasRef.current;
@@ -82,7 +88,8 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
       opacity: 1, dying: false,
       variant: OFUDA_VARIANTS[Math.floor(Math.random() * OFUDA_VARIANTS.length)],
       spriteState: 'idle', hitTimer: 0,
-      animFrame: Math.floor(Math.random() * ANIM_FRAMES),
+      animFrame: 0,
+      isBurning: false,
       animTimer: 0,
     }));
     setTotal(data.length);
@@ -156,29 +163,17 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
   const destroyEnemy = useCallback((id) => {
     const state = gameState.current;
     const en = state.enemies.find(e => e.id === id);
-    if (!en || en.dying) return;
-    en.dying = true;
-    en.spriteState = 'hit';
-    for (let i = 0; i < 20; i++) {
-      state.particles.push({
-        x: en.x, y: en.y,
-        vx: (Math.random() - 0.5) * 16,
-        vy: (Math.random() - 0.5) * 16,
-        life: 1.0,
-        color: i % 3 === 0 ? '#a855f7' : en.variant.charColor,
-        size: Math.random() * 5 + 2,
-      });
-    }
-    state.floatingTexts.push({ x: en.x, y: en.y - 30, text: `✓ ${en.char}`, color: '#4ade80', life: 1.5, vy: 1.8 });
+    if (!en || en.dying || en.isBurning) return;
+    
+    en.isBurning = true;
+    en.animFrame = 0;
+    en.animTimer = 0;
+
     state.destroyed++;
     setScore(s => s + 1);
     state.activeTarget = null; state.phase = 'playing';
     setPhase('playing'); setActiveChar(null); setActiveHint(null);
-    setTimeout(() => {
-      state.enemies = state.enemies.filter(e => e.id !== id);
-      if (state.enemies.length === 0) { state.phase = 'victory'; setPhase('victory'); onWaveComplete?.(); }
-    }, 500);
-  }, [onWaveComplete]);
+  }, []);
 
   // ─── Targeting ─────────────────────────────────────────────────────────────
   // pendingWriter guarda char+callback até o writerDivRef estar no DOM
@@ -250,10 +245,38 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
       state.enemies.forEach(en => {
         if (en.dying) { en.opacity = Math.max(0, en.opacity - 0.06); return; }
         
-        en.animTimer += 1;
-        if (en.animTimer >= Math.round(60 / ANIM_FPS)) {
-          en.animFrame = (en.animFrame + 1) % ANIM_FRAMES;
-          en.animTimer = 0;
+        // Animação da morte (papel queimando)
+        if (en.isBurning) {
+          en.animTimer += 1;
+          if (en.animTimer >= Math.round(60 / ANIM_FPS)) {
+            en.animFrame += 1;
+            en.animTimer = 0;
+            
+            if (en.animFrame >= ANIM_FRAMES) {
+              en.isBurning = false;
+              en.dying = true;
+              en.animFrame = ANIM_FRAMES - 1; // Trava no último frame pro fade-out
+              
+              // Explosão de Partículas
+              for (let i = 0; i < 20; i++) {
+                state.particles.push({
+                  x: en.x, y: en.y,
+                  vx: (Math.random() - 0.5) * 16,
+                  vy: (Math.random() - 0.5) * 16,
+                  life: 1.0,
+                  color: i % 3 === 0 ? '#a855f7' : en.variant.charColor,
+                  size: Math.random() * 5 + 2,
+                });
+              }
+              state.floatingTexts.push({ x: en.x, y: en.y - 30, text: `✓ ${en.char}`, color: '#4ade80', life: 1.5, vy: 1.8 });
+              
+              setTimeout(() => {
+                state.enemies = state.enemies.filter(e => e.id !== en.id);
+                if (state.enemies.length === 0) { state.phase = 'victory'; setPhase('victory'); onWaveCompleteRef.current?.(); }
+              }, 500);
+            }
+          }
+          return; // Trava o inimigo no lugar enquanto a animação toca
         }
 
         en.x -= en.speed; en.wobble += 0.025;
@@ -285,8 +308,12 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
         ctx.globalAlpha = en.opacity;
         ctx.translate(en.x, en.y);
 
-        const frameName = `sprites_ofuda/frame_${String(en.animFrame).padStart(3,'0')}`;
-        const spriteName = (en.spriteState === 'hit' && !en.dying) ? en.variant.hit : frameName;
+        let spriteName;
+        if (en.isBurning || en.dying) {
+          spriteName = `sprites_ofuda/frame_${String(en.animFrame).padStart(3,'0')}`;
+        } else {
+          spriteName = (en.spriteState === 'hit' && !en.dying) ? en.variant.hit : en.variant.idle;
+        }
         const sprite = spriteCache[spriteName];
 
         if (sprite?.complete && sprite.naturalWidth > 0) {
