@@ -308,12 +308,9 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
         ctx.globalAlpha = en.opacity;
         ctx.translate(en.x, en.y);
 
-        let spriteName;
-        if (en.isBurning || en.dying) {
-          spriteName = `sprites_ofuda/frame_${String(en.animFrame).padStart(3,'0')}`;
-        } else {
-          spriteName = (en.spriteState === 'hit' && !en.dying) ? en.variant.hit : en.variant.idle;
-        }
+        const spriteName = (en.spriteState === 'hit' && !en.dying && !en.isBurning)
+          ? en.variant.hit
+          : `sprites_ofuda/frame_${String(en.animFrame).padStart(3,'0')}`;
         const sprite = spriteCache[spriteName];
 
         if (sprite?.complete && sprite.naturalWidth > 0) {
