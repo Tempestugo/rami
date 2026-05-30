@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import SidebarFilters from './features/SidebarFilters';
 import GraphCanvas from './features/GraphCanvas';
 import DetailsPanel from './features/DetailsPanel';
@@ -9,10 +9,27 @@ import SiegeMode from './features/SiegeMode';
 import FraseCook from './features/FraseCook';
 import LessonManager from './features/LessonManager';
 import HanziCard from './features/HanziCard';
+import LearningTrail from './features/LearningTrail';
 
 export default function App() {
   // Estado para alternar entre Explorer, Warfare e Siege
   const [mode, setMode] = useState('explorer'); // 'explorer' | 'warfare' | 'siege' | 'frase' | 'learn' | 'cards'
+  const [activeLesson, setActiveLesson] = useState(null); // id da lição (ex: hsk1_s003)
+
+  // Estado para buscar as cartas do banco de dados
+  const [userCards, setUserCards] = useState([]);
+  const [loadingCards, setLoadingCards] = useState(false);
+
+  useEffect(() => {
+    if (mode === 'cards') {
+      setLoadingCards(true);
+      fetch('/api/cards/1') // Buscando para o user_id = 1 provisoriamente
+        .then(r => r.json())
+        .then(data => { if (data.success) setUserCards(data.data); })
+        .catch(console.error)
+        .finally(() => setLoadingCards(false));
+    }
+  }, [mode]);
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-ink-950">
@@ -50,7 +67,7 @@ export default function App() {
             Estudar
           </button>
           <button
-            onClick={() => setMode('learn')}
+            onClick={() => { setMode('learn'); setActiveLesson(null); }}
             className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all border ${
               mode === 'learn'
                 ? 'bg-azure-500/10 border-azure-400 text-azure-300'
@@ -127,22 +144,38 @@ export default function App() {
 
       {mode === 'learn' && (
         <div className="flex-1 relative overflow-hidden bg-ink-950">
-          <LessonManager sentenceId="hsk1_s003" onComplete={(r) => console.log(r)} />
+          {activeLesson ? (
+            <LessonManager sentenceId={activeLesson} onComplete={(r) => setActiveLesson(null)} />
+          ) : (
+            <LearningTrail onSelectLesson={(id) => setActiveLesson(id)} />
+          )}
         </div>
       )}
 
       {mode === 'cards' && (
         <div className="flex-1 relative overflow-y-auto bg-ink-950 p-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6 max-w-6xl mx-auto">
-            {/* Mock temporário de cartas (futuramente vindo de GET /api/cards/:userId) */}
-            <HanziCard char="水" pinyin="shuǐ" meaning="água" family="水" level={1} />
-            <HanziCard char="火" pinyin="huǒ" meaning="fogo" family="火" level={2} />
-            <HanziCard char="木" pinyin="mù" meaning="madeira" family="木" level={3} />
-            <HanziCard char="金" pinyin="jīn" meaning="metal" family="金" level={4} />
-            <HanziCard char="土" pinyin="tǔ" meaning="terra" family="土" level={5} />
-            <HanziCard char="人" pinyin="rén" meaning="pessoa" family="人" level={1} />
-            <HanziCard char="口" pinyin="kǒu" meaning="boca" family="口" level={2} />
-          </div>
+          {loadingCards ? (
+            <div className="flex h-full items-center justify-center text-azure-300 font-mono">
+              Invocando suas cartas...
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6 max-w-6xl mx-auto">
+              {userCards.length > 0 ? userCards.map((c, i) => (
+                <HanziCard 
+                  key={i} 
+                  char={c.char} 
+                  pinyin={c.pinyin} 
+                  meaning={c.meaning_pt} 
+                  family={c.family} 
+                  level={c.srs_level} 
+                />
+              )) : (
+                <div className="col-span-full text-center text-ink-500 font-body mt-20">
+                  Você ainda não possui nenhuma carta no banco de dados.
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 

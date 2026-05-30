@@ -55,7 +55,8 @@ function makeLessonId(sentenceId) {
 function buildSiegeExercises(sentence) {
   // Itera sobre TODOS os caracteres únicos da frase (não só as palavras)
   // para que cada traço seja praticado individualmente.
-  const chars = [...new Set([...sentence.hanzi])].filter((c) => c.trim());
+  const hanziStr = sentence.hanzi || '';
+  const chars = [...new Set([...hanziStr])].filter((c) => c.trim());
   const words = sentence.words || []; // Proteção!
 
   return chars.map((char, idx) => {
@@ -161,7 +162,7 @@ export async function generateLesson(sentenceId) {
     raw = await readFile(SENTENCES_PATH, 'utf8');
     allSentences = JSON.parse(raw);
   } catch (err) {
-    throw new Error(`Erro ao ler/parsear hsk1_sentences.json. Verifique se o arquivo existe e é válido.`);
+    throw new Error(`Erro Crítico IO: ${err.message} (Caminho tentado: ${SENTENCES_PATH})`);
   }
 
   const sentence = allSentences.find((s) => s.id === sentenceId);
@@ -206,7 +207,8 @@ export async function lessonHandler(req, res) {
     const lesson = await generateLesson(req.params.id);
     res.json(lesson);
   } catch (err) {
+    console.error('CRASH NO LESSON GENERATOR:', err);
     const status = err.message.includes('não encontrada') ? 404 : 500;
-    res.status(status).json({ error: err.message });
+    res.status(status).json({ error: err.message, stack: err.stack });
   }
 }

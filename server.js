@@ -7,7 +7,7 @@ import charHandler   from './api/graph/character/[id].js';
 import phraseHandler from './api/phrases/build.js';
 import attackHandler from './attack.js';          // BUG FIX: era './api/game/logic.js' (não existe)
 import siegeHandler  from './api/game/siege.js';  // NOVO
-import { lessonHandler } from './api/game/lessonGenerator.js';
+import { lessonHandler, listSentences } from './api/game/lessonGenerator.js';
 import pool from './db.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -30,6 +30,15 @@ app.get('/api/game/siege',   siegeHandler);
 
 // --- Sistema de Lições e Progressão ---
 app.get('/api/lesson/:id', lessonHandler);
+
+app.get('/api/lessons', async (req, res) => {
+  try {
+    const data = await listSentences();
+    res.json({ success: true, data });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 app.post('/api/progress', async (req, res) => {
   try {
