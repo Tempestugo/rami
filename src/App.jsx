@@ -14,7 +14,7 @@ import LearningTrail from './features/LearningTrail';
 export default function App() {
   // Estado para alternar entre Explorer, Warfare e Siege
   const [mode, setMode] = useState('explorer'); // 'explorer' | 'warfare' | 'siege' | 'frase' | 'learn' | 'cards'
-  const [activeLesson, setActiveLesson] = useState(null); // id da lição (ex: hsk1_s003)
+  const [activeLesson, setActiveLesson] = useState(null); // objeto { id: 'hsk1_s003', type: 'stroke' | 'build' }
 
   // Estado para buscar as cartas do banco de dados
   const [userCards, setUserCards] = useState([]);
@@ -145,9 +145,10 @@ export default function App() {
       {mode === 'learn' && (
         <div className="flex-1 relative overflow-hidden bg-ink-950">
           {activeLesson ? (
-            <LessonManager sentenceId={activeLesson} onComplete={(r) => setActiveLesson(null)} />
+            // Passa a preferência de atividade para o LessonManager decidir o que renderizar
+            <LessonManager sentenceId={activeLesson.id} activityType={activeLesson.type} onComplete={(r) => setActiveLesson(null)} />
           ) : (
-            <LearningTrail onSelectLesson={(id) => setActiveLesson(id)} />
+            <LearningTrail onSelectLesson={(lessonObj) => setActiveLesson(lessonObj)} />
           )}
         </div>
       )}

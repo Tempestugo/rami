@@ -4,6 +4,7 @@ export default function LearningTrail({ onSelectLesson }) {
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeModal, setActiveModal] = useState(null);
 
   useEffect(() => {
     fetch('/api/lessons')
@@ -98,16 +99,60 @@ export default function LearningTrail({ onSelectLesson }) {
                 </div>
 
                 <button
-                  onClick={() => onSelectLesson(lesson.id)}
+                  onClick={() => setActiveModal(lesson)}
                   className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-azure-600/20 border border-azure-500/50 text-azure-300 font-bold tracking-wider hover:bg-azure-600/30 hover:scale-105 transition-all shadow-[0_0_15px_rgba(59,130,246,0.15)]"
                 >
-                  INICIAR MISSÃO
+                  VER ATIVIDADES
                 </button>
               </div>
             </div>
           );
         })}
       </div>
+
+      {/* Modal de Escolha de Atividade */}
+      {activeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-ink-900 border border-white/10 rounded-3xl p-8 max-w-md w-full shadow-2xl relative">
+            <h3 className="text-white text-3xl font-display font-bold text-center mb-2">{activeModal.hanzi}</h3>
+            <p className="text-azure-300 font-mono text-center text-sm mb-1">
+              {Array.isArray(activeModal.pinyin) ? activeModal.pinyin.join(' ') : activeModal.pinyin}
+            </p>
+            <p className="text-ink-400 text-sm text-center mb-8">{activeModal.translation_pt}</p>
+            
+            <div className="flex flex-col gap-4">
+              <button 
+                onClick={() => onSelectLesson({ id: activeModal.id, type: 'stroke' })} 
+                className="flex items-center gap-4 bg-white/5 hover:bg-azure-600/20 border border-white/10 hover:border-azure-500/50 transition-colors rounded-xl p-4 text-left group"
+              >
+                <span className="text-2xl group-hover:scale-110 transition-transform">✍️</span>
+                <div>
+                  <h4 className="text-white font-bold">Praticar Traços</h4>
+                  <p className="text-ink-400 text-xs">Aprenda a ordem de escrita</p>
+                </div>
+              </button>
+
+              <button 
+                onClick={() => onSelectLesson({ id: activeModal.id, type: 'build' })} 
+                className="flex items-center gap-4 bg-white/5 hover:bg-gold-500/20 border border-white/10 hover:border-gold-500/50 transition-colors rounded-xl p-4 text-left group"
+              >
+                <span className="text-2xl group-hover:scale-110 transition-transform">🀄</span>
+                <div>
+                  <h4 className="text-white font-bold">Montar Frase</h4>
+                  <p className="text-ink-400 text-xs">Estilo Duolingo (ordene os blocos)</p>
+                </div>
+              </button>
+            </div>
+
+            <button 
+              onClick={() => setActiveModal(null)} 
+              className="mt-8 w-full text-ink-500 hover:text-white font-bold text-sm tracking-widest uppercase transition-colors"
+            >
+              FECHAR
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -55,6 +55,7 @@ function makeLessonId(sentenceId) {
 function buildSiegeExercises(sentence) {
   // Itera sobre TODOS os caracteres únicos da frase (não só as palavras)
   // para que cada traço seja praticado individualmente.
+
   const hanziStr = sentence.hanzi || '';
   const chars = [...new Set([...hanziStr])].filter((c) => c.trim());
   const words = sentence.words || []; // Proteção!
