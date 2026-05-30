@@ -325,9 +325,21 @@ const LumiWarfare = ({ deck = DEFAULT_DECK }) => {
           const target = s.enemies.reduce((p, c) =>
             Math.hypot(c.x - t.x, c.y - t.y) < Math.hypot(p.x - t.x, p.y - t.y) ? c : p
           );
-          t.x += (target.x - t.x) * 0.025;
-          t.y += (target.y - t.y) * 0.025;
+          
+          const dx = target.x - t.x;
+          const dy = target.y - t.y;
+          const dist = Math.hypot(dx, dy);
+          
+          // Só se move se não estiver muito colado (evita sobrepor o inimigo)
+          if (dist > t.radius + target.radius + 15) {
+            t.x += dx * 0.025;
+            t.y += dy * 0.025;
+          }
         }
+
+        // Trava as tropas dentro da tela (evita que fujam da visão do jogador)
+        t.x = Math.max(t.radius, Math.min(canvas.width - t.radius, t.x));
+        t.y = Math.max(t.radius + 50, Math.min(canvas.height - t.radius - 80, t.y));
 
         t.trail.push({ x: t.x, y: t.y });
         if (t.trail.length > 12) t.trail.shift();

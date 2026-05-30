@@ -56,10 +56,11 @@ function buildSiegeExercises(sentence) {
   // Itera sobre TODOS os caracteres únicos da frase (não só as palavras)
   // para que cada traço seja praticado individualmente.
   const chars = [...new Set([...sentence.hanzi])].filter((c) => c.trim());
+  const words = sentence.words || []; // Proteção!
 
   return chars.map((char, idx) => {
     // Tenta encontrar pinyin/meaning na decomposição de palavras
-    const wordMatch = sentence.words.find((w) => w.hanzi.includes(char));
+    const wordMatch = words.find((w) => w.hanzi.includes(char));
     return {
       id: `siege_${sentence.id}_${idx}`,
       type: 'SIEGE_STROKE',
@@ -79,15 +80,16 @@ function buildSiegeExercises(sentence) {
  * O frontend renderiza isso sem precisar de SiegeMode ou FraseCook.
  */
 function buildMeaningQuiz(sentence, allSentences) {
-  if (sentence.words.length === 0) return [];
+  const words = sentence.words || []; // Proteção!
+  if (words.length === 0) return [];
 
   // Pega uma palavra aleatória da sentença como alvo
-  const target = sentence.words[Math.floor(Math.random() * sentence.words.length)];
+  const target = words[Math.floor(Math.random() * words.length)];
 
   // Distratores: palavras de outras sentenças
   const distractors = allSentences
     .filter((s) => s.id !== sentence.id)
-    .flatMap((s) => s.words)
+    .flatMap((s) => s.words || []) // Proteção contra arrays aninhados undefined
     .filter((w) => w.hanzi !== target.hanzi && w.meaning_pt)
     .slice(0, 6); // pega 6 candidatos
 
@@ -121,7 +123,10 @@ function buildMeaningQuiz(sentence, allSentences) {
  */
 function buildSentenceCookExercise(sentence) {
   // Usa as PALAVRAS (não caracteres individuais) como blocos
-  const orderedBlocks = sentence.words.map((w, idx) => ({
+  const words = sentence.words || []; // Proteção!
+  if (words.length === 0) return [];
+
+  const orderedBlocks = words.map((w, idx) => ({
     id: `block_${idx}`,
     text: w.hanzi,
     pinyin: w.pinyin,
@@ -151,13 +156,13 @@ function buildSentenceCookExercise(sentence) {
  * @returns {Promise<LessonPayload>}
  */
 export async function generateLesson(sentenceId) {
-  let raw;
+  let raw, allSentences;
   try {
     raw = await readFile(SENTENCES_PATH, 'utf8');
+    allSentences = JSON.parse(raw);
   } catch (err) {
-    throw new Error(`Arquivo JSON não encontrado no servidor! Verifique se você fez o upload de api/_data/hsk1_sentences.json para a Hostinger.`);
+    throw new Error(`Erro ao ler/parsear hsk1_sentences.json. Verifique se o arquivo existe e é válido.`);
   }
-  const allSentences = JSON.parse(raw);
 
   const sentence = allSentences.find((s) => s.id === sentenceId);
   if (!sentence) {
