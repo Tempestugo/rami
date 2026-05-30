@@ -24,15 +24,19 @@ function shuffle(arr) {
   return a;
 }
 
+const getPhraseStr = (p) => p.phrase || (p.chars ? p.chars.join('') : '');
+const getPhraseArr = (p) => p.phrase ? Array.from(p.phrase) : (p.chars || []);
+
 // Descobre TODAS as frases que podem ser montadas apenas com a contagem de tiles disponíveis
 function findAllPhrases(tiles, pool) {
   const tileFreq = {};
   tiles.forEach(t => tileFreq[t] = (tileFreq[t] || 0) + 1);
 
   return pool.filter(p => {
-    if (p.chars.length < 2) return false; // Ignora caracteres soltos, apenas frases
+    const arr = getPhraseArr(p);
+    if (arr.length < 2) return false; // Ignora caracteres soltos, apenas frases
     const pFreq = {};
-    for (let c of p.chars) pFreq[c] = (pFreq[c] || 0) + 1;
+    for (let c of arr) pFreq[c] = (pFreq[c] || 0) + 1;
     
     for (let c in pFreq) {
       if (!tileFreq[c] || tileFreq[c] < pFreq[c]) return false;
@@ -57,19 +61,20 @@ function generateRound(hskLevel, context) {
   // Tenta encontrar uma combinação que gere entre 3 e 7 palavras
   for (let attempt = 0; attempt < 50; attempt++) {
     const seed = pool[Math.floor(Math.random() * pool.length)];
-    let tiles = [...seed.chars];
+    let tiles = [...getPhraseArr(seed)];
 
     // Preenche até ter 5 tiles
     while (tiles.length < 5) {
       const rp = pool[Math.floor(Math.random() * pool.length)];
-      tiles.push(rp.chars[Math.floor(Math.random() * rp.chars.length)]);
+      const rpArr = getPhraseArr(rp);
+      tiles.push(rpArr[Math.floor(Math.random() * rpArr.length)]);
     }
 
     tiles = shuffle(tiles).slice(0, 5);
     const validPhrases = findAllPhrases(tiles, pool);
 
     if (validPhrases.length >= 3 && validPhrases.length <= 7) {
-      validPhrases.sort((a, b) => a.chars.length - b.chars.length || a.phrase.localeCompare(b.phrase));
+      validPhrases.sort((a, b) => getPhraseArr(a).length - getPhraseArr(b).length || getPhraseStr(a).localeCompare(getPhraseStr(b)));
       return { tiles: tiles.map((char, i) => ({ id: `t_${i}`, char })), phrases: validPhrases };
     }
 
@@ -79,7 +84,7 @@ function generateRound(hskLevel, context) {
     }
   }
 
-  bestPhrases.sort((a, b) => a.chars.length - b.chars.length || a.phrase.localeCompare(b.phrase));
+  bestPhrases.sort((a, b) => getPhraseArr(a).length - getPhraseArr(b).length || getPhraseStr(a).localeCompare(getPhraseStr(b)));
   if (bestPhrases.length > 7) bestPhrases = bestPhrases.slice(0, 7); // Cap máximo visual
   
   return {
@@ -163,7 +168,7 @@ export default function FraseCook({ initialHsk = 1, initialContext = null }) {
 
   function submitWord() {
     const charsStr = selected.map(s => s.char).join('');
-    const idx = phrases.findIndex(p => p.chars.join('') === charsStr);
+    const idx = phrases.findIndex(p => getPhraseStr(p) === charsStr);
 
     if (idx !== -1) {
       if (solved.has(idx)) {
@@ -268,7 +273,7 @@ export default function FraseCook({ initialHsk = 1, initialContext = null }) {
 
               {/* Slots */}
               <div className="flex gap-2 flex-wrap">
-                {phrase.chars.map((char, ci) => (
+                {getPhraseArr(phrase).map((char, ci) => (
                   <div
                     key={ci}
                     className={`
@@ -395,7 +400,7 @@ export default function FraseCook({ initialHsk = 1, initialContext = null }) {
           <div className="font-display text-5xl text-gold-400 animate-pulse">完</div>
           <div className="text-xl font-display font-bold tracking-widest text-ink-100">完成！</div>
           <div className="text-sm font-body text-ink-400">
-            +{phrases.reduce((s, p) => s + p.chars.length * 15, 0)} pontos nesta rodada
+            +{phrases.reduce((s, p) => s + getPhraseArr(p).length * 15, 0)} pontos nesta rodada
           </div>
           <button
             onClick={nextRound}

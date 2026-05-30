@@ -25,39 +25,62 @@ export default function LearningTrail({ onSelectLesson }) {
   }
 
   return (
-    <div className="relative w-full h-full overflow-y-auto bg-ink-950 flex flex-col items-center py-16">
+    <div className="relative w-full h-full overflow-y-auto bg-ink-950 flex flex-col items-center py-12 px-4">
       {/* Título da Trilha */}
-      <div className="mb-12 text-center z-10 fade-up">
+      <div className="mb-10 text-center z-10 fade-up max-w-xl">
         <h2 className="text-3xl font-display text-azure-400 font-bold mb-2">Trilha de Aprendizado</h2>
-        <p className="text-ink-400 text-sm font-body">Complete as missões para dominar o HSK 1</p>
+        <p className="text-ink-400 text-sm font-body">Complete as missões para dominar o vocabulário e a gramática do HSK 1</p>
       </div>
 
-      {/* Linha vertical central do caminho */}
-      <div className="absolute top-40 bottom-0 w-2 bg-ink-800 rounded-t-full left-1/2 -translate-x-1/2 z-0" />
-
-      <div className="relative z-10 flex flex-col gap-8 w-full max-w-2xl px-4">
+      <div className="relative z-10 flex flex-col gap-6 w-full max-w-2xl">
         {lessons.map((lesson, idx) => {
-          // Alterna as informações do texto entre a esquerda e a direita
-          const isLeft = idx % 2 === 0;
+          // Conta caracteres únicos para os exercícios de caligrafia
+          const uniqueChars = new Set([...(lesson.hanzi || '')].filter(c => c.trim())).size;
 
           return (
-            <div key={lesson.id} className="relative flex w-full h-24 items-center justify-center group">
-              {/* Textos Informativos */}
-              <div className={`absolute w-1/2 px-10 flex flex-col transition-opacity ${isLeft ? 'left-0 items-end text-right' : 'right-0 items-start text-left'} opacity-70 group-hover:opacity-100`}>
-                <p className="text-white font-bold font-display text-2xl drop-shadow-md">{lesson.hanzi}</p>
-                <p className="text-azure-300 text-sm font-mono">{Array.isArray(lesson.pinyin) ? lesson.pinyin.join(' ') : lesson.pinyin}</p>
-                <p className="text-ink-400 text-xs font-body mt-1">{lesson.translation_pt}</p>
+            <div 
+              key={lesson.id} 
+              className="relative bg-ink-900 border border-white/10 rounded-2xl p-6 shadow-lg hover:border-azure-500/30 transition-colors flex flex-col sm:flex-row gap-6 items-center"
+            >
+              {/* Número da Lição */}
+              <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-azure-600 text-white flex items-center justify-center font-bold shadow-md border-2 border-ink-950">
+                {idx + 1}
               </div>
 
-              {/* Nó Interativo (Botão da Trilha) */}
-              <button
-                onClick={() => onSelectLesson(lesson.id)}
-                className="relative z-10 w-16 h-16 rounded-full bg-ink-900 border-4 border-azure-500 hover:bg-azure-500/20 hover:scale-110 transition-all flex items-center justify-center shadow-[0_0_15px_rgba(59,130,246,0.3)]"
-              >
-                <span className="font-display text-xl text-azure-100 group-hover:text-white transition-colors">
-                  {idx + 1}
-                </span>
-              </button>
+              {/* Info da Sentença */}
+              <div className="flex-1 text-center sm:text-left">
+                <p className="text-white font-bold font-display text-3xl tracking-wide mb-1 drop-shadow-sm">
+                  {lesson.hanzi}
+                </p>
+                <p className="text-azure-300 text-sm font-mono mb-1">
+                  {Array.isArray(lesson.pinyin) ? lesson.pinyin.join(' ') : lesson.pinyin}
+                </p>
+                <p className="text-ink-400 text-sm font-body">
+                  {lesson.translation_pt}
+                </p>
+              </div>
+
+              {/* Botões / Exercícios */}
+              <div className="flex flex-col items-center sm:items-end gap-3 shrink-0 w-full sm:w-auto">
+                <div className="flex gap-2">
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/5 rounded-lg border border-white/10 text-ink-300 text-xs" title={`${uniqueChars} traços para desenhar`}>
+                    <span>✍️</span> <span>{uniqueChars}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/5 rounded-lg border border-white/10 text-ink-300 text-xs" title="1 Quiz de significado">
+                    <span>🧠</span> <span>1</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/5 rounded-lg border border-white/10 text-ink-300 text-xs" title="1 Desafio de montar a frase">
+                    <span>🀄</span> <span>1</span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => onSelectLesson(lesson.id)}
+                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-azure-600/20 border border-azure-500/50 text-azure-300 font-bold tracking-wider hover:bg-azure-600/30 hover:scale-105 transition-all shadow-[0_0_15px_rgba(59,130,246,0.15)]"
+                >
+                  INICIAR MISSÃO
+                </button>
+              </div>
             </div>
           );
         })}
