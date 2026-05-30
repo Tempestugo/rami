@@ -3,16 +3,29 @@ import React, { useEffect, useState } from 'react';
 export default function LearningTrail({ onSelectLesson }) {
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetch('/api/lessons')
-      .then((r) => r.json())
+      .then(async (r) => {
+        const contentType = r.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          throw new Error("A API não retornou JSON. O servidor foi reiniciado?");
+        }
+        if (!r.ok) throw new Error(`Erro HTTP ${r.status}`);
+        return r.json();
+      })
       .then((data) => {
         if (data.success) {
           setLessons(data.data);
+        } else {
+          setError(data.error || "Erro desconhecido na API");
         }
       })
-      .catch(console.error)
+      .catch((err) => {
+        console.error(err);
+        setError(err.message);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -20,6 +33,16 @@ export default function LearningTrail({ onSelectLesson }) {
     return (
       <div className="flex h-full items-center justify-center text-azure-300 font-mono">
         Desenhando mapa de estudos...
+      </div>
+    );
+  }
+
+  if (error || lessons.length === 0) {
+    return (
+      <div className="flex h-full flex-col gap-4 items-center justify-center text-ink-300 font-mono text-center px-6">
+        <p className="text-vermillion-400 text-lg">⚠️ Ocorreu um problema ao carregar as missões.</p>
+        <p className="text-sm bg-ink-900 p-3 rounded-lg border border-white/10">{error || "Lista de lições vazia."}</p>
+        <p className="text-xs mt-4">Dica: Execute <code className="text-gold-300 bg-black/40 px-1 py-0.5 rounded">touch tmp/restart.txt</code> no SSH para garantir que o backend atualizou.</p>
       </div>
     );
   }
