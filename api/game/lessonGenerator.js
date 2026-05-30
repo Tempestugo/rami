@@ -151,7 +151,12 @@ function buildSentenceCookExercise(sentence) {
  * @returns {Promise<LessonPayload>}
  */
 export async function generateLesson(sentenceId) {
-  const raw = await readFile(SENTENCES_PATH, 'utf8');
+  let raw;
+  try {
+    raw = await readFile(SENTENCES_PATH, 'utf8');
+  } catch (err) {
+    throw new Error(`Arquivo JSON não encontrado no servidor! Verifique se você fez o upload de api/_data/hsk1_sentences.json para a Hostinger.`);
+  }
   const allSentences = JSON.parse(raw);
 
   const sentence = allSentences.find((s) => s.id === sentenceId);
@@ -169,7 +174,7 @@ export async function generateLesson(sentenceId) {
     lesson_id: makeLessonId(sentenceId),
     sentence_id: sentenceId,
     hanzi_full: sentence.hanzi,
-    pinyin_full: sentence.pinyin.join(' '),
+    pinyin_full: Array.isArray(sentence.pinyin) ? sentence.pinyin.join(' ') : (sentence.pinyin || ''),
     translation_pt: sentence.translation_pt,
     hsk_level: sentence.hsk_level,
     total_xp: exercises.reduce((acc, e) => acc + (e.xp_reward ?? 0), 0),
