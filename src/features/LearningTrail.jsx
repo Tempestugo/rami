@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import HanziWriter from 'hanzi-writer';
+import { hanziData } from '../../api/_data/hanziData.js';
 
 const LEVEL_NAMES = ['', 'Aprendendo', 'Familiar', 'Consolidando', 'Dominando', 'Mestre'];
 const SRS_COLORS = {
@@ -21,6 +22,29 @@ function normalizePinyin(str) {
     .trim();
 }
 
+const hanziMap = new Map(hanziData.map(h => [h.id, h]));
+
+function getCharacterContext(char) {
+  const charObj = hanziMap.get(char);
+  if (!charObj || !charObj.tags) return 'outros';
+  const tags = charObj.tags;
+  if (tags.includes('comida') || tags.includes('cozinha')) return 'cozinha';
+  if (tags.includes('natureza') || tags.includes('clima') || tags.includes('tempo')) return 'natureza';
+  if (tags.includes('pessoa') || tags.includes('familia') || tags.includes('animal')) return 'pessoas';
+  if (tags.includes('estudo') || tags.includes('acao')) return 'estudo';
+  if (tags.includes('casa') || tags.includes('cotidiano')) return 'casa';
+  return 'outros';
+}
+
+const CONTEXTS = [
+  { id: 'all', label: 'Todos os Contextos', icon: '🌌', color: 'border-white/10 text-white bg-white/5 hover:bg-white/10' },
+  { id: 'cozinha', label: 'Culinária / Cozinha', icon: '🍚', color: 'border-blue-500/30 text-blue-400 bg-blue-500/5 hover:bg-blue-500/10' },
+  { id: 'natureza', label: 'Natureza / Clima', icon: '🌲', color: 'border-green-500/30 text-green-400 bg-green-500/5 hover:bg-green-500/10' },
+  { id: 'pessoas', label: 'Pessoas / Família', icon: '👥', color: 'border-yellow-300/30 text-yellow-300 bg-yellow-300/5 hover:bg-yellow-300/10' },
+  { id: 'estudo', label: 'Ações / Estudos', icon: '📚', color: 'border-purple-500/30 text-purple-400 bg-purple-500/5 hover:bg-purple-500/10' },
+  { id: 'casa', label: 'Casa / Cotidiano', icon: '🏡', color: 'border-amber-500/30 text-amber-400 bg-amber-500/5 hover:bg-amber-500/10' },
+];
+
 export default function LearningTrail() {
   // Estados de Fluxo: 'DASHBOARD' | 'PRACTICING' | 'SUMMARY'
   const [viewState, setViewState] = useState('DASHBOARD');
@@ -34,6 +58,7 @@ export default function LearningTrail() {
   const [sessionPhrases, setSessionPhrases] = useState([]);
   const [currentPhraseIdx, setCurrentPhraseIdx] = useState(0);
   const [sessionHistory, setSessionHistory] = useState([]); // { phrase, originalLevels: {}, newLevels: {} }
+  const [selectedContext, setSelectedContext] = useState('all');
   
   // Estados da Pergunta Ativa
   const [activePhrase, setActivePhrase] = useState(null);
@@ -44,6 +69,7 @@ export default function LearningTrail() {
   // Estados de Controle do Caso 1 (Desenho)
   const [completedChars, setCompletedChars] = useState({}); // { '我': true }
   const [drawingChar, setDrawingChar] = useState(null);
+  const [drawingCharDetail, setDrawingCharDetail] = useState({ pinyin: '', meaning: '' });
   const [mistakesCount, setMistakesCount] = useState(0);
   const [srsSelfAssessment, setSrsSelfAssessment] = useState(null); // 'review_phase'
   const [assessmentVotes, setAssessmentVotes] = useState({}); // { '我': 'remembered'|'forgot' }
@@ -80,10 +106,10 @@ export default function LearningTrail() {
     setLoadingCards(true);
 
     try {
-      // Pega todos os caracteres conhecidos
+      // Pega todos os caracteres conhecidos pelo usuário
       const chars = knownCards.map(c => c.char);
       
-      // Busca frases contendo estes caracteres no banco
+      // Busca frases contendo estes caracteres no banco (cobertura >= 80% do caractere no backend)
       const res = await fetch('/api/phrases/build', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -111,13 +137,52 @@ export default function LearningTrail() {
         }
       }
 
-      // Embaralha e pega no máximo 5 frases
-      phrases = phrases.sort(() => 0.5 - Math.random()).slice(0, 5);
-      
-      setSessionPhrases(phrases);
+      // Filtra a lista de frases para apenas conter frases que têm pelo menos um caractere do contexto ativo
+      if (selectedContext !== 'all') {
+        phrases = phrases.filter(p => {
+          return [...p.phrase].some(char => {
+            return getCharacterContext(char) === selectedContext;
+          });
+        });
+      }
+
+      if (phrases.length === 0) {
+        alert('Não encontramos frases contendo os caracteres deste contexto no banco de frases.');
+        setLoadingCards(false);
+        return;
+      }
+
+      // Separa em frases curtas (<= 6 caracteres) e longas (> 6 caracteres)
+      const shortPhrases = phrases.filter(p => p.phrase.length <= 6).sort(() => 0.5 - Math.random());
+      const longPhrases = phrases.filter(p => p.phrase.length > 6).sort(() => 0.5 - Math.random());
+
+      // Intercala frases curtas e longas
+      const sessionList = [];
+      let sIdx = 0;
+      let lIdx = 0;
+      let preferShort = true;
+
+      while (sessionList.length < 5 && (sIdx < shortPhrases.length || lIdx < longPhrases.length)) {
+        if (preferShort) {
+          if (sIdx < shortPhrases.length) {
+            sessionList.push(shortPhrases[sIdx++]);
+          } else if (lIdx < longPhrases.length) {
+            sessionList.push(longPhrases[lIdx++]);
+          }
+        } else {
+          if (lIdx < longPhrases.length) {
+            sessionList.push(longPhrases[lIdx++]);
+          } else if (sIdx < shortPhrases.length) {
+            sessionList.push(shortPhrases[sIdx++]);
+          }
+        }
+        preferShort = !preferShort;
+      }
+
+      setSessionPhrases(sessionList);
       setCurrentPhraseIdx(0);
       setSessionHistory([]);
-      setupPhrase(phrases[0], type);
+      setupPhrase(sessionList[0], type);
       setViewState('PRACTICING');
     } catch (err) {
       console.error(err);
@@ -155,6 +220,27 @@ export default function LearningTrail() {
   const openDrawingPad = (char) => {
     setDrawingChar(char);
     setMistakesCount(0);
+    const card = knownCards.find(c => c.char === char);
+    if (card) {
+      setDrawingCharDetail({ pinyin: card.pinyin, meaning: card.meaning_pt });
+    } else {
+      setDrawingCharDetail({ pinyin: 'Carregando...', meaning: '' });
+      fetch(`/api/graph/character/${char}`)
+        .then(r => r.json())
+        .then(res => {
+          if (res.success && res.data) {
+            setDrawingCharDetail({
+              pinyin: res.data.pinyin,
+              meaning: res.data.meaning
+            });
+          } else {
+            setDrawingCharDetail({ pinyin: '', meaning: '' });
+          }
+        })
+        .catch(() => {
+          setDrawingCharDetail({ pinyin: '', meaning: '' });
+        });
+    }
   };
 
   const handleCloseDrawingPad = () => {
@@ -175,6 +261,7 @@ export default function LearningTrail() {
       padding: 15,
       showOutline: false, // COMEÇA INVISÍVEL como pedido!
       showCharacter: false,
+      showHintAfterMisses: 5,
       strokeColor: '#10b981', // Jade 500
       drawingColor: '#10b981',
       drawingWidth: 6,
@@ -201,11 +288,12 @@ export default function LearningTrail() {
     });
 
     writer.quiz({
+      showHintAfterMisses: 5,
       onMistake: () => {
         setMistakesCount(prev => {
           const next = prev + 1;
-          if (next >= 3) {
-            // Revela outline após 3 erros
+          if (next >= 5) {
+            // Revela outline após 5 erros
             writer.showOutline();
           }
           return next;
@@ -234,7 +322,7 @@ export default function LearningTrail() {
   const handleShowHint = () => {
     if (writerRef.current) {
       writerRef.current.showOutline();
-      setMistakesCount(3); // força estado de dica ativa
+      setMistakesCount(5); // força estado de dica ativa
     }
   };
 
@@ -380,6 +468,40 @@ export default function LearningTrail() {
           </div>
         ) : (
           <div className="w-full max-w-3xl flex flex-col gap-8">
+            {/* Seletor de Contexto */}
+            <div className="bg-ink-900 border border-white/10 rounded-2xl p-6">
+              <h3 className="text-white font-bold text-sm uppercase tracking-wider mb-3 font-mono text-ink-300">
+                Filtrar Treino por Contexto
+              </h3>
+              <div className="flex flex-wrap gap-2.5">
+                {CONTEXTS.map(ctx => {
+                  const count = ctx.id === 'all' 
+                    ? knownCards.length 
+                    : knownCards.filter(c => getCharacterContext(c.char) === ctx.id).length;
+                  const isSelected = selectedContext === ctx.id;
+                  
+                  return (
+                    <button
+                      key={ctx.id}
+                      disabled={count === 0 && ctx.id !== 'all'}
+                      onClick={() => setSelectedContext(ctx.id)}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-bold font-mono transition-all ${
+                        isSelected
+                          ? 'border-azure-400 text-azure-300 bg-azure-500/15 shadow-[0_0_10px_rgba(59,130,246,0.15)]'
+                          : count === 0 && ctx.id !== 'all'
+                            ? 'border-white/5 text-ink-600 cursor-not-allowed opacity-30'
+                            : ctx.color
+                      }`}
+                    >
+                      <span>{ctx.icon}</span>
+                      <span>{ctx.label}</span>
+                      <span className="text-[10px] opacity-75">({count})</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Opções de Prática */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {[
@@ -646,7 +768,10 @@ export default function LearningTrail() {
             >
               <div className="text-center">
                 <span className="text-[10px] text-azure-400 font-mono uppercase tracking-wider">Modo Escrita</span>
-                <h3 className="text-white text-3xl font-display font-bold mt-0.5">{drawingChar}</h3>
+                <h3 className="text-azure-300 text-2xl font-mono font-bold mt-0.5">{drawingCharDetail.pinyin}</h3>
+                {drawingCharDetail.meaning && (
+                  <p className="text-ink-400 text-xs font-body mt-1 max-w-[240px] truncate">{drawingCharDetail.meaning}</p>
+                )}
               </div>
 
               {/* Quadro de desenho */}
@@ -657,7 +782,7 @@ export default function LearningTrail() {
               />
 
               <p className="text-[10px] text-ink-400 text-center font-mono">
-                {mistakesCount >= 3 ? 'Outline revelado. Copie o traço!' : 'Desenhe o caractere de cabeça!'}
+                {mistakesCount >= 5 ? 'Outline revelado. Copie o traço!' : 'Desenhe o caractere de cabeça!'}
               </p>
 
               {/* Ações adicionais */}

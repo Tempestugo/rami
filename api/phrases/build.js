@@ -6,19 +6,20 @@
 // 1. Importação moderna (ESM)
 import { phraseData } from '../_data/phraseData.js';
 
-function findPhrases(charIds, limit = 5) {
+function findPhrases(charIds, limit = 300) {
   if (!charIds || charIds.length === 0) return [];
 
   const targetSet = new Set(charIds);
 
   const scored = phraseData.map(entry => {
     const matchCount = entry.chars.filter(c => targetSet.has(c)).length;
-    const coverage = matchCount / targetSet.size;
+    // Coverage is the percentage of the sentence's characters known by the user
+    const coverage = entry.chars.length > 0 ? (matchCount / entry.chars.length) : 0;
     return { ...entry, matchCount, coverage };
   });
 
   return scored
-    .filter(e => e.matchCount > 0)
+    .filter(e => e.coverage >= 0.8)
     .sort((a, b) => b.coverage - a.coverage || a.hsk - b.hsk)
     .slice(0, limit);
 }

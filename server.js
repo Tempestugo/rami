@@ -11,9 +11,12 @@ import { lessonHandler, listSentences } from './api/game/lessonGenerator.js';
 import pool, { dbReady } from './db.js';
 import { hanziData } from './api/_data/hanziData.js';
 
+// Pre-build a map for O(1) character lookups
+const hanziMap = new Map(hanziData.map(h => [h.id, h]));
+
 // Helper: Maps a character (from hanziData) to a family & base_damage and Portuguese meaning
 function enrichCharacterData(char) {
-  const data = hanziData.find(h => h.id === char);
+  const data = hanziMap.get(char);
   if (!data) {
     return {
       pinyin: '',
