@@ -13,6 +13,8 @@ const HSK_BADGE_COLORS = {
   6: 'bg-pink-900/20 text-pink-300 border-pink-800/30',
 };
 
+const LEVEL_NAMES = ['', 'Aprendendo', 'Familiar', 'Consolidando', 'Dominando', 'Mestre'];
+
 export default function DetailsPanel() {
   const { activeChar, togglePhraseSelection, phraseSelection } = useStore();
   const writerTargetRef = useRef(null);
@@ -20,10 +22,86 @@ export default function DetailsPanel() {
   const [quizActive, setQuizActive] = useState(false);
   const [quizResult, setQuizResult] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [srsState, setSrsState] = useState({ known: false, level: 1 });
+  const [loadingSrs, setLoadingSrs] = useState(false);
 
   useEffect(() => {
     if (activeChar) setIsOpen(true);
   }, [activeChar]);
+
+  useEffect(() => {
+    if (!activeChar) return;
+    setLoadingSrs(true);
+    fetch(`/api/cards/1/status/${encodeURIComponent(activeChar.id)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setSrsState({ known: data.known, level: data.srs_level || 1 });
+        }
+      })
+      .catch(err => console.error('Erro ao buscar status do card:', err))
+      .finally(() => setLoadingSrs(false));
+  }, [activeChar]);
+
+  const handleAddToKnown = async () => {
+    if (!activeChar) return;
+    setLoadingSrs(true);
+    try {
+      const res = await fetch('/api/cards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: 1, char: activeChar.id, srs_level: 1 })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSrsState({ known: true, level: 1 });
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingSrs(false);
+    }
+  };
+
+  const handleUpdateSrsLevel = async (level) => {
+    if (!activeChar) return;
+    setLoadingSrs(true);
+    try {
+      const res = await fetch('/api/cards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: 1, char: activeChar.id, srs_level: level })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSrsState({ known: true, level });
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingSrs(false);
+    }
+  };
+
+  const handleRemoveFromKnown = async () => {
+    if (!activeChar) return;
+    setLoadingSrs(true);
+    try {
+      const res = await fetch('/api/cards', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: 1, char: activeChar.id })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSrsState({ known: false, level: 1 });
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingSrs(false);
+    }
+  };
 
   const isSelected = activeChar ? phraseSelection.includes(activeChar.id) : false;
 
@@ -139,6 +217,66 @@ export default function DetailsPanel() {
               {tag}
             </span>
           ))}
+        </div>
+
+        {/* --- CONHECIDO / SRS LEVEL SELECTOR --- */}
+        <div className="w-full bg-white/[0.02] border border-white/10 rounded-xl p-3.5 flex flex-col gap-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-ink-400 font-mono uppercase tracking-wider">Progresso de Estudo</span>
+            {loadingSrs ? (
+              <span className="text-[10px] text-ink-500 font-mono animate-pulse">Carregando...</span>
+            ) : srsState.known ? (
+              <span className="text-[10px] text-jade-400 font-mono font-bold uppercase">Conhecido</span>
+            ) : (
+              <span className="text-[10px] text-ink-500 font-mono uppercase">Não aprendido</span>
+            )}
+          </div>
+
+          {loadingSrs ? (
+            <div className="h-10 flex items-center justify-center text-xs text-ink-500 font-mono">
+              Consultando biblioteca...
+            </div>
+          ) : !srsState.known ? (
+            <button
+              onClick={handleAddToKnown}
+              className="w-full py-2 text-xs font-bold uppercase tracking-wider rounded-lg
+                         bg-vermillion-500/10 border border-vermillion-500/30 text-vermillion-400
+                         hover:bg-vermillion-500/20 hover:border-vermillion-500/50 transition-all duration-150"
+            >
+              ➕ Adicionar aos Conhecidos
+            </button>
+          ) : (
+            <div className="flex flex-col gap-2.5">
+              <div className="flex justify-between gap-1">
+                {[1, 2, 3, 4, 5].map((lvl) => {
+                  const isActive = srsState.level === lvl;
+                  return (
+                    <button
+                      key={lvl}
+                      onClick={() => handleUpdateSrsLevel(lvl)}
+                      title={`Nível ${lvl} - ${LEVEL_NAMES[lvl]}`}
+                      className={`flex-1 py-1.5 rounded font-mono text-xs font-bold transition-all border ${
+                        isActive
+                          ? 'bg-jade-500/15 border-jade-500 text-jade-300 shadow-[0_0_8px_rgba(16,185,129,0.2)]'
+                          : 'bg-white/5 border-white/10 text-ink-400 hover:bg-white/8 hover:text-ink-200'
+                      }`}
+                    >
+                      L{lvl}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[10px] text-ink-400 font-body text-center italic">
+                {LEVEL_NAMES[srsState.level] || 'Nível'} (SRS)
+              </p>
+              <button
+                onClick={handleRemoveFromKnown}
+                className="w-full py-1 text-[10px] font-bold uppercase tracking-wider rounded border border-red-900/30 text-red-400/80 bg-red-950/10 hover:bg-red-950/20 hover:text-red-400 transition-all duration-150"
+              >
+                Remover da Coleção
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="w-full h-px bg-white/[0.08]" />

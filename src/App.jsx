@@ -144,12 +144,7 @@ export default function App() {
 
       {mode === 'learn' && (
         <div className="flex-1 relative overflow-hidden bg-ink-950">
-          {activeLesson ? (
-            // Passa a preferência de atividade para o LessonManager decidir o que renderizar
-            <LessonManager sentenceId={activeLesson.id} activityType={activeLesson.type} onComplete={(r) => setActiveLesson(null)} />
-          ) : (
-            <LearningTrail onSelectLesson={(lessonObj) => setActiveLesson(lessonObj)} />
-          )}
+          <LearningTrail />
         </div>
       )}
 
