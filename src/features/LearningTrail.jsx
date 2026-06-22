@@ -429,17 +429,27 @@ export default function LearningTrail() {
       }
     ]);
 
+    goToNextPhrase();
+  };
+
+  const goToNextPhrase = () => {
     // Avança para próxima frase ou encerra sessão
     const nextIdx = currentPhraseIdx + 1;
     if (nextIdx < sessionPhrases.length) {
       setCurrentPhraseIdx(nextIdx);
       setupPhrase(sessionPhrases[nextIdx], practiceType);
     } else {
+      // Salva a data da última sessão de prática
+      localStorage.setItem('rami_last_practice_date', new Date().toISOString());
       // Recarrega cards atualizados para o dashboard
       loadKnownCards();
       setViewState('SUMMARY');
     }
   };
+
+  const lastPracticeDate = localStorage.getItem('rami_last_practice_date');
+  const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+  const canPractice = !lastPracticeDate || new Date(lastPracticeDate) < threeDaysAgo;
 
   // 7. Renderização do Dashboard Inicial
   if (viewState === 'DASHBOARD') {
@@ -502,6 +512,12 @@ export default function LearningTrail() {
               </div>
             </div>
 
+            {!canPractice && (
+              <div className="text-center p-4 bg-ink-800 border border-white/10 rounded-xl text-sm text-ink-400 font-body">
+                Você já praticou recentemente. Para evitar repetição, a prática de frases estará disponível novamente em breve.
+              </div>
+            )}
+
             {/* Opções de Prática */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {[
@@ -532,6 +548,7 @@ export default function LearningTrail() {
               ].map(opt => (
                 <button
                   key={opt.id}
+                  disabled={!canPractice}
                   onClick={() => startSession(opt.id)}
                   className={`flex flex-col text-left p-5 rounded-2xl bg-ink-900 border transition-all duration-200 group ${opt.color}`}
                 >
@@ -819,6 +836,12 @@ export default function LearningTrail() {
             ✕ Abandonar
           </button>
 
+          <button
+            onClick={handleRevealAndSkip}
+            className="px-5 py-2 text-xs font-bold uppercase tracking-wider border border-white/10 rounded-lg text-ink-400 hover:text-white hover:bg-white/5 transition"
+          >
+            Revelar & Pular ➔
+          </button>
           {/* Botões do Caso 1 */}
           {activeCase === 1 && srsSelfAssessment === null && (
             <button
