@@ -2,7 +2,7 @@
  * GET /api/game/siege?hsk=1&count=5
  * Retorna horda de ofudas baseada em HSK — sem MySQL, usa hanziData local.
  */
-import { hanziData } from '../../src/data/hanziData.js';
+import { hanziData } from '../_data/hanziData.js';
 
 export default function siegeHandler(req, res) {
   const maxHsk = parseInt(req.query.hsk)   || 1;

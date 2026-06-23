@@ -9,7 +9,7 @@ import attackHandler from './attack.js';          // BUG FIX: era './api/game/lo
 import siegeHandler  from './api/game/siege.js';  // NOVO
 import { lessonHandler, listSentences } from './api/game/lessonGenerator.js';
 import pool, { dbReady } from './db.js';
-import { hanziData } from './src/data/hanziData.js';
+import { hanziData } from './api/_data/hanziData.js';
 
 // Pre-build a map for O(1) character lookups
 const hanziMap = new Map(hanziData.map(h => [h.id, h]));
