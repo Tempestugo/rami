@@ -12,27 +12,15 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api': {
-        target: 'http://127.0.0.1:3000',
-        changeOrigin: true,
-        bypass(req, res, options) {
-          if (req.url.startsWith('/api/_data/')) {
-            return req.url;
-          }
-          return false;
-        },
-        configure: (proxy, _options) => {
-          proxy.on('error', (err, _req, _res) => {
-            console.log('[Vite Proxy Error]:', err.message);
-          });
-          proxy.on('proxyReq', (proxyReq, req, _res) => {
-            console.log('[Vite Proxy Request]:', req.method, req.url);
-          });
-          proxy.on('proxyRes', (proxyRes, req, _res) => {
-            console.log('[Vite Proxy Response]:', proxyRes.statusCode, req.url);
-          });
-        }
-      }
+      '/api/cards': 'http://127.0.0.1:3000',
+      '/api/phrases': 'http://127.0.0.1:3000',
+      '/api/phrase': 'http://127.0.0.1:3000',
+      '/api/lesson': 'http://127.0.0.1:3000',
+      '/api/progress': 'http://127.0.0.1:3000',
+      '/api/deck': 'http://127.0.0.1:3000',
+      '/api/characters': 'http://127.0.0.1:3000',
+      '/api/graph': 'http://127.0.0.1:3000',
+      '/api/game': 'http://127.0.0.1:3000',
     }
   },
   optimizeDeps: { 
