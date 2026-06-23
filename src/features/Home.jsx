@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { hanziData } from '../../api/_data/hanziData.js';
-import { grammarData } from '../../api/_data/grammarData.js';
+import { hanziData } from '../data/hanziData.js';
+import { grammarData } from '../data/grammarData.js';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import HanziWriter from 'hanzi-writer';
-import { hanziData } from '../../api/_data/hanziData.js';
+import { hanziData } from '../data/hanziData.js';
 
 const LEVEL_NAMES = ['', 'Aprendendo', 'Familiar', 'Consolidando', 'Dominando', 'Mestre'];
 const SRS_COLORS = {

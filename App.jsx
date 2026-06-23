@@ -8,6 +8,7 @@ import PhraseSelectionBar from './components/PhraseSelectionBar';
 import LearningTrail from './features/LearningTrail';
 import LumiWarfare from './features/LumiWarfare';
 import SiegeMode from './features/SiegeMode';
+import CardCollection from './features/CardCollection.jsx';
 import FraseCook from './features/FraseCook';
 
 const MODES = {
@@ -105,9 +106,7 @@ export default function App() {
       )}
 
       {mode === MODES.CARDS && (
-        <div className="flex-1 flex items-center justify-center text-ink-400 font-mono">
-          (WIP: Tela para visualizar todas as cartas conhecidas)
-        </div>
+        <CardCollection />
       )}
 
       {mode === MODES.FRASE && (

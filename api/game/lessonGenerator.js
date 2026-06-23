@@ -24,7 +24,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const SENTENCES_PATH = path.resolve(__dirname, '../_data/hsk1_sentences.json');
+const SENTENCES_PATH = path.resolve(__dirname, '../../src/data/hsk1_sentences.json');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
