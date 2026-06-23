@@ -6,21 +6,43 @@
 // 1. Importação moderna (ESM)
 import { phraseData } from '../_data/phraseData.js';
 
-function findPhrases(charIds, limit = 300) {
-  if (!charIds || charIds.length === 0) return [];
+function findPhrases(charsInput, limit = 300) {
+  if (!charsInput || charsInput.length === 0) return [];
 
-  const targetSet = new Set(charIds);
+  const srsMap = new Map();
+  const targetSet = new Set();
+
+  charsInput.forEach(item => {
+    if (item && typeof item === 'object' && item.char) {
+      targetSet.add(item.char);
+      srsMap.set(item.char, item.srs_level || 1);
+    } else if (typeof item === 'string') {
+      targetSet.add(item);
+      srsMap.set(item, 1);
+    }
+  });
 
   const scored = phraseData.map(entry => {
     const matchCount = entry.chars.filter(c => targetSet.has(c)).length;
-    // Coverage is the percentage of the sentence's characters known by the user
     const coverage = entry.chars.length > 0 ? (matchCount / entry.chars.length) : 0;
-    return { ...entry, matchCount, coverage };
+    
+    // Calcula srsPriority como a soma de (6 - srs_level) de cada ideograma da frase.
+    // Ideogramas mais fracos (srs_level = 1) adicionam 5 pontos, etc.
+    // Isso prioriza frases contendo múltiplos caracteres fracos.
+    let srsPriority = 0;
+    entry.chars.forEach(c => {
+      if (targetSet.has(c)) {
+        const lvl = srsMap.get(c) || 1;
+        srsPriority += (6 - lvl);
+      }
+    });
+
+    return { ...entry, matchCount, coverage, srsPriority };
   });
 
   return scored
     .filter(e => e.coverage >= 0.8)
-    .sort((a, b) => b.coverage - a.coverage || a.hsk - b.hsk)
+    .sort((a, b) => b.srsPriority - a.srsPriority || b.coverage - a.coverage || a.hsk - b.hsk)
     .slice(0, limit);
 }
 

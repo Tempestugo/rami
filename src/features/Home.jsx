@@ -18,7 +18,11 @@ function estimateHskLevel(count) {
 
 /** Seleciona o ponto gramatical do dia (rotação determinística baseada na data) */
 function getDailyGrammarPoint(hskLevel, dateObj = new Date()) {
-  const pool = grammarData.filter(g => g.hsk <= hskLevel);
+  const levelSetting = localStorage.getItem('rami_wiki_hsk_level') || 'hsk1';
+  let pool = grammarData.filter(g => g.hsk === 1);
+  if (levelSetting === 'hsk1_hsk2') {
+    pool = grammarData.filter(g => g.hsk === 1 || g.hsk === 2);
+  }
   if (pool.length === 0) return grammarData[0];
   // Usa o timezone offset local para calcular o índice do dia local de forma estável
   const localTime = dateObj.getTime() - dateObj.getTimezoneOffset() * 60000;
@@ -51,47 +55,62 @@ function GrammarModal({ point, onClose }) {
   if (!point) return null;
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg bg-ink-900 border border-azure-500/30 rounded-2xl shadow-2xl shadow-azure-500/10 flex flex-col gap-0 overflow-hidden"
+        className="w-full max-w-lg bg-ink-900 border border-azure-500/30 rounded-2xl shadow-2xl shadow-azure-500/10 flex flex-col gap-0 overflow-hidden max-h-[85vh] md:max-h-[90vh]"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="bg-azure-500/10 border-b border-azure-500/20 px-6 py-4 flex justify-between items-start">
+        <div className="bg-azure-500/10 border-b border-azure-500/20 px-6 py-4 flex justify-between items-start shrink-0">
           <div>
             <span className="text-[10px] text-azure-400 font-mono uppercase tracking-widest">HSK {point.hsk} — Gramática do Dia</span>
             <h2 className="text-white font-display font-bold text-lg mt-0.5 leading-tight">{point.title}</h2>
           </div>
           <button
             onClick={onClose}
-            className="text-ink-400 hover:text-white transition text-xl leading-none mt-0.5"
+            className="text-ink-400 hover:text-white transition text-xl leading-none mt-0.5 font-bold"
           >✕</button>
         </div>
 
-        {/* Estrutura */}
-        <div className="px-6 py-4 border-b border-white/5">
-          <span className="text-[10px] text-ink-500 font-mono uppercase tracking-wider">Estrutura</span>
-          <p className="text-gold-300 font-mono text-sm font-bold mt-1 bg-gold-500/5 border border-gold-500/15 rounded-lg px-3 py-2">
-            {point.structure}
-          </p>
-        </div>
+        {/* Scrollable Content Wrapper */}
+        <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-5 scrollbar-thin">
+          {/* Estrutura */}
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[10px] text-ink-500 font-mono uppercase tracking-wider">Estrutura</span>
+            <p className="text-gold-300 font-mono text-sm font-bold bg-gold-500/5 border border-gold-500/15 rounded-lg px-3 py-2">
+              {point.structure}
+            </p>
+          </div>
 
-        {/* Exemplos */}
-        <div className="px-6 py-4 flex flex-col gap-3">
-          <span className="text-[10px] text-ink-500 font-mono uppercase tracking-wider">Exemplos</span>
-          {point.examples.map((ex, i) => (
-            <div key={i} className="bg-black/30 rounded-xl p-3 border border-white/5">
-              <p className="text-white font-display text-xl font-bold">{ex.chinese}</p>
-              <p className="text-azure-300 font-mono text-xs mt-1">{ex.pinyin}</p>
-              <p className="text-ink-300 text-xs font-body mt-1 italic">"{ex.translation}"</p>
+          {/* Explicação */}
+          {point.explanation && (
+            <div className="flex flex-col gap-1.5 border-t border-white/5 pt-4">
+              <span className="text-[10px] text-ink-500 font-mono uppercase tracking-wider">Explicação</span>
+              <p className="text-ink-200 text-sm font-body leading-relaxed whitespace-pre-line">
+                {point.explanation}
+              </p>
             </div>
-          ))}
+          )}
+
+          {/* Exemplos */}
+          <div className="flex flex-col gap-3 border-t border-white/5 pt-4">
+            <span className="text-[10px] text-ink-500 font-mono uppercase tracking-wider">Exemplos</span>
+            <div className="flex flex-col gap-3">
+              {point.examples.map((ex, i) => (
+                <div key={i} className="bg-black/30 rounded-xl p-3 border border-white/5">
+                  <p className="text-white font-display text-xl font-bold">{ex.chinese}</p>
+                  <p className="text-azure-300 font-mono text-xs mt-1">{ex.pinyin}</p>
+                  <p className="text-ink-300 text-xs font-body mt-1 italic">"{ex.translation}"</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 border-t border-white/5 flex justify-between items-center bg-black/20">
+        <div className="px-6 py-3 border-t border-white/5 flex justify-between items-center bg-black/20 shrink-0">
           <span className="text-[9px] text-ink-600 font-mono">
             Chinese Grammar Wiki © AllSet Learning — CC BY-NC-SA 3.0
           </span>
@@ -110,12 +129,66 @@ function GrammarModal({ point, onClose }) {
 }
 
 // ─── Lição do Dia ────────────────────────────────────────────────────────────
-function LessonModal({ chars, knownChars, onLearn, onClose }) {
+function LessonModal({ chars, knownChars, onLearn, onClose, onOpenGrammarPoint }) {
   const [learned, setLearned] = useState({});
+  const [examplesMap, setExamplesMap] = useState({});
+  const [loadingExamples, setLoadingExamples] = useState(false);
+
+  // Busca exemplos de sentenças reais para cada caractere contendo o próprio caractere e conhecidos
+  useEffect(() => {
+    if (!chars || chars.length === 0) return;
+    setLoadingExamples(true);
+
+    const fetchAllExamples = async () => {
+      const map = {};
+      const knownList = Array.from(knownChars);
+      try {
+        await Promise.all(
+          chars.map(async (char) => {
+            const res = await fetch('/api/phrases/build', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ chars: [char, ...knownList] })
+            });
+            const resData = await res.json();
+            if (resData.success && resData.data) {
+              const filtered = resData.data.filter(s => s.phrase.includes(char));
+              map[char] = filtered.slice(0, 2);
+            }
+          })
+        );
+        setExamplesMap(map);
+      } catch (err) {
+        console.error('Erro ao buscar exemplos para LessonModal:', err);
+      } finally {
+        setLoadingExamples(false);
+      }
+    };
+
+    fetchAllExamples();
+  }, [chars, knownChars]);
 
   const handleLearn = (char) => {
     setLearned(prev => ({ ...prev, [char]: true }));
     onLearn(char);
+  };
+
+  const highlightChar = (text, char) => {
+    const parts = text.split(char);
+    return parts.map((part, i) => (
+      <React.Fragment key={i}>
+        {part}
+        {i < parts.length - 1 && <span className="text-gold-400 font-extrabold">{char}</span>}
+      </React.Fragment>
+    ));
+  };
+
+  const findRelatedGrammarPoint = (char) => {
+    return grammarData.find(g => 
+      g.title.toLowerCase().includes(char) || 
+      g.structure.includes(char) ||
+      g.examples.some(ex => ex.chinese.includes(char))
+    );
   };
 
   return (
@@ -124,27 +197,43 @@ function LessonModal({ chars, knownChars, onLearn, onClose }) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg bg-ink-900 border border-gold-500/30 rounded-2xl shadow-2xl shadow-gold-500/10 flex flex-col overflow-hidden"
+        className="w-full max-w-xl bg-ink-900 border border-gold-500/30 rounded-2xl shadow-2xl shadow-gold-500/10 flex flex-col overflow-hidden max-h-[85vh] md:max-h-[90vh]"
         onClick={e => e.stopPropagation()}
       >
-        <div className="bg-gold-500/10 border-b border-gold-500/20 px-6 py-4 flex justify-between items-start">
+        <div className="bg-gold-500/10 border-b border-gold-500/20 px-6 py-4 flex justify-between items-start shrink-0">
           <div>
             <span className="text-[10px] text-gold-400 font-mono uppercase tracking-widest">Lição do Dia</span>
-            <h2 className="text-white font-display font-bold text-lg mt-0.5">Novos Ideogramas</h2>
+            <h2 className="text-white font-display font-bold text-lg mt-0.5">Novos Ideogramas em Contexto</h2>
           </div>
           <button onClick={onClose} className="text-ink-400 hover:text-white transition text-xl leading-none mt-0.5">✕</button>
         </div>
 
-        <div className="px-6 py-5 flex flex-col gap-4 max-h-[60vh] overflow-y-auto">
+        <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-5 scrollbar-thin">
           {chars.map(char => {
             const data = hanziMap.get(char);
             const isLearned = learned[char];
+            const relatedGrammar = findRelatedGrammarPoint(char);
+            const examples = examplesMap[char] || [];
+
             return (
-              <div key={char} className={`rounded-xl border p-4 transition-all ${isLearned ? 'border-jade-500/40 bg-jade-500/5' : 'border-white/10 bg-black/20'}`}>
+              <div key={char} className={`rounded-xl border p-4 flex flex-col gap-3.5 transition-all ${isLearned ? 'border-jade-500/40 bg-jade-500/5' : 'border-white/10 bg-black/20'}`}>
+                
+                {/* Detalhes do Ideograma */}
                 <div className="flex items-center gap-4">
-                  <span className="text-5xl font-display font-bold text-white">{char}</span>
+                  <span className="text-5xl font-display font-bold text-white shrink-0">{char}</span>
                   <div className="flex-1">
-                    <p className="text-azure-300 font-mono text-sm">{data?.pinyin || '—'}</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-azure-300 font-mono text-sm font-bold">{data?.pinyin || '—'}</p>
+                      {relatedGrammar && (
+                        <button
+                          onClick={() => onOpenGrammarPoint(relatedGrammar)}
+                          className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-azure-500/10 border border-azure-400/30 text-azure-300 hover:bg-azure-500/25 transition cursor-pointer"
+                          title="Clique para ver explicação da regra"
+                        >
+                          📖 Gramática: {relatedGrammar.title.slice(0, 22)}...
+                        </button>
+                      )}
+                    </div>
                     <p className="text-ink-300 text-sm font-body mt-0.5">{data?.meaning_pt || data?.meaning || '—'}</p>
                     {data?.tags?.length > 0 && (
                       <div className="flex gap-1 flex-wrap mt-1.5">
@@ -157,7 +246,7 @@ function LessonModal({ chars, knownChars, onLearn, onClose }) {
                   <button
                     onClick={() => handleLearn(char)}
                     disabled={isLearned}
-                    className={`px-3 py-2 rounded-lg text-xs font-bold font-mono transition border ${
+                    className={`px-3 py-2 rounded-lg text-xs font-bold font-mono transition border shrink-0 ${
                       isLearned
                         ? 'border-jade-500/40 text-jade-400 bg-jade-500/10 cursor-default'
                         : 'border-gold-400/50 text-gold-300 bg-gold-500/10 hover:bg-gold-500/20'
@@ -166,14 +255,39 @@ function LessonModal({ chars, knownChars, onLearn, onClose }) {
                     {isLearned ? '✓ Aprendi' : 'Aprendi!'}
                   </button>
                 </div>
+
+                {/* Frases de Exemplo */}
+                <div className="border-t border-white/5 pt-3.5 flex flex-col gap-2">
+                  <span className="text-[9px] text-ink-500 font-mono uppercase tracking-wider block">Exemplos de Uso na Prática</span>
+                  {loadingExamples && examples.length === 0 ? (
+                    <p className="text-[10px] text-ink-500 font-mono italic animate-pulse">Carregando frases de exemplo...</p>
+                  ) : examples.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {examples.map((ex, i) => (
+                        <div key={i} className="bg-black/35 rounded-xl p-3 border border-white/5 text-xs flex flex-col gap-1">
+                          <p className="text-white font-display text-base font-bold tracking-wide">
+                            {highlightChar(ex.phrase, char)}
+                          </p>
+                          <p className="text-azure-300 font-mono text-[10px]">{ex.pinyin}</p>
+                          <p className="text-ink-400 font-body text-[10px] italic mt-0.5">"{ex.translation}"</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-ink-600 font-body italic">
+                      Nenhuma frase simples com este ideograma encontrada na biblioteca ainda.
+                    </p>
+                  )}
+                </div>
+
               </div>
             );
           })}
         </div>
 
-        <div className="px-6 py-3 border-t border-white/5 bg-black/20">
+        <div className="px-6 py-3 border-t border-white/5 bg-black/20 shrink-0">
           <p className="text-[10px] text-ink-500 font-body italic">
-            Clicar "Aprendi!" adiciona o caractere à sua coleção SRS no nível 1.
+            Adicione novos ideogramas à sua coleção para que eles passem a aparecer nas frases de prática (Aprender).
           </p>
         </div>
       </div>
@@ -186,7 +300,7 @@ export default function Home({ onNavigate }) {
   const [knownCards, setKnownCards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [streak, setStreak] = useState(0);
-  const [grammarModal, setGrammarModal] = useState(false);
+  const [selectedGrammarPoint, setSelectedGrammarPoint] = useState(null);
   const [lessonModal, setLessonModal] = useState(false);
   const [addingChar, setAddingChar] = useState(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -215,25 +329,69 @@ export default function Home({ onNavigate }) {
 
   // Derivados
   const hskLevel = estimateHskLevel(knownCards.length);
-  const grammarPoint = getDailyGrammarPoint(hskLevel, selectedDate);
   const knownSet = new Set(knownCards.map(c => c.char));
   const today = new Date().toDateString();
 
-  // Gera os últimos 7 dias (terminando em hoje)
-  const getLast7Days = () => {
-    const list = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      list.push(d);
+  // Lógica de Compensação (Catch-Up): pega a data mais antiga incompleta
+  const getEffectiveDate = useCallback((key, dateObj) => {
+    const todayObj = new Date();
+    const isToday = dateObj.toDateString() === todayObj.toDateString();
+    if (!isToday) {
+      return dateObj;
     }
+    // Sonda os últimos 30 dias de forma cronológica (do mais antigo ao mais recente)
+    for (let i = 30; i >= 1; i--) {
+      const d = new Date();
+      d.setDate(todayObj.getDate() - i);
+      const done = !!dailyDone[d.toDateString() + ':' + key];
+      if (!done) {
+        return d;
+      }
+    }
+    return dateObj;
+  }, [dailyDone]);
+
+  const effGrammarDate = getEffectiveDate('grammar', selectedDate);
+  const grammarPoint = getDailyGrammarPoint(hskLevel, effGrammarDate);
+
+  // Gera os dias do mês selecionado com padding de alinhamento
+  const getDaysOfCurrentMonth = () => {
+    const year = selectedDate.getFullYear();
+    const month = selectedDate.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    
+    const padding = firstDay.getDay(); // 0 = Domingo, 1 = Segunda, etc.
+    const list = [];
+    
+    for (let i = 0; i < padding; i++) {
+      list.push(null);
+    }
+    
+    for (let day = 1; day <= lastDay.getDate(); day++) {
+      list.push(new Date(year, month, day));
+    }
+    
     return list;
   };
-  const last7Days = getLast7Days();
+  const monthDays = getDaysOfCurrentMonth();
 
-  const getDayName = (date) => {
-    const names = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-    return names[date.getDay()];
+  const handlePrevMonth = () => {
+    setSelectedDate(prev => {
+      const d = new Date(prev);
+      d.setMonth(d.getMonth() - 1);
+      d.setDate(1);
+      return d;
+    });
+  };
+
+  const handleNextMonth = () => {
+    setSelectedDate(prev => {
+      const d = new Date(prev);
+      d.setMonth(d.getMonth() + 1);
+      d.setDate(1);
+      return d;
+    });
   };
 
   // Lição do Dia: próximos 5 ideogramas do menor nível HSK com cartas faltando.
@@ -250,23 +408,22 @@ export default function Home({ onNavigate }) {
       break; // Encontrou o primeiro nível com cartas para aprender
     }
   }
-  // Se o loop terminar e não encontrar nada, o usuário sabe tudo. lessonChars será [].
-
 
   // Cards SRS com revisão pendente (aproximado: nível <= 3 como "pendentes para hoje")
   const srsReviewCount = knownCards.filter(c => c.srs_level <= 3).length;
 
-  // Marcar pilar como feito na data selecionada
+  // Marcar pilar como feito na data selecionada (usando a data efetiva)
   const markDone = (key) => {
-    const dateStr = selectedDate.toDateString();
+    const effDate = getEffectiveDate(key, selectedDate);
+    const dateStr = effDate.toDateString();
     const updated = { ...dailyDone, [dateStr + ':' + key]: true };
     setDailyDone(updated);
     localStorage.setItem('rami_daily_done', JSON.stringify(updated));
   };
 
   const isDone = (key) => {
-    const dateStr = selectedDate.toDateString();
-    return !!dailyDone[dateStr + ':' + key];
+    const effDate = getEffectiveDate(key, selectedDate);
+    return !!dailyDone[effDate.toDateString() + ':' + key];
   };
 
   const isDoneForDate = (key, date) => {
@@ -373,7 +530,7 @@ export default function Home({ onNavigate }) {
       bg: 'bg-azure-500/5',
       btnColor: 'bg-azure-500/15 border-azure-400/50 text-azure-300 hover:bg-azure-500/25',
       count: null,
-      action: () => { setGrammarModal(true); markDone('grammar'); },
+      action: () => { setSelectedGrammarPoint(grammarPoint); markDone('grammar'); },
       cta: 'Ver Ponto →',
     },
   ];
@@ -404,9 +561,25 @@ export default function Home({ onNavigate }) {
         {/* ── Agenda / Calendário de Estudos ── */}
         <div className="bg-ink-900 border border-white/10 rounded-2xl p-5 shadow-lg">
           <div className="flex justify-between items-center mb-3.5">
-            <h3 className="text-white font-bold text-sm uppercase tracking-wider font-mono text-ink-300">
-              Agenda de Estudos (Catch-up)
-            </h3>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handlePrevMonth}
+                className="text-ink-400 hover:text-white transition p-1 font-bold text-sm"
+                title="Mês Anterior"
+              >
+                ◀
+              </button>
+              <span className="text-white font-bold text-sm uppercase tracking-wider font-mono">
+                {selectedDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+              </span>
+              <button
+                onClick={handleNextMonth}
+                className="text-ink-400 hover:text-white transition p-1 font-bold text-sm"
+                title="Próximo Mês"
+              >
+                ▶
+              </button>
+            </div>
             {selectedDate.toDateString() !== new Date().toDateString() && (
               <button
                 onClick={() => setSelectedDate(new Date())}
@@ -416,8 +589,22 @@ export default function Home({ onNavigate }) {
               </button>
             )}
           </div>
+
+          <div className="grid grid-cols-7 gap-2.5 text-center text-[10px] font-mono font-bold uppercase tracking-wider text-ink-500 mb-2">
+            <div>Dom</div>
+            <div>Seg</div>
+            <div>Ter</div>
+            <div>Qua</div>
+            <div>Qui</div>
+            <div>Sex</div>
+            <div>Sáb</div>
+          </div>
+
           <div className="grid grid-cols-7 gap-2.5">
-            {last7Days.map((day) => {
+            {monthDays.map((day, idx) => {
+              if (!day) {
+                return <div key={`empty-${idx}`} />;
+              }
               const dateStr = day.toDateString();
               const isSelected = selectedDate.toDateString() === dateStr;
               const isToday = today === dateStr;
@@ -436,7 +623,7 @@ export default function Home({ onNavigate }) {
                 <button
                   key={dateStr}
                   onClick={() => setSelectedDate(day)}
-                  className={`flex flex-col items-center gap-2 py-2.5 px-1 rounded-xl border transition-all duration-200 ${
+                  className={`flex flex-col items-center gap-1.5 py-2 px-1 rounded-xl border transition-all duration-200 ${
                     isSelected
                       ? 'border-azure-500 text-azure-300 bg-azure-500/10 shadow-[0_0_12px_rgba(59,130,246,0.15)] scale-105'
                       : isToday
@@ -444,11 +631,7 @@ export default function Home({ onNavigate }) {
                         : 'border-transparent text-ink-400 hover:bg-white/5 hover:text-white'
                   }`}
                 >
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider opacity-85">
-                    {getDayName(day)}
-                  </span>
-                  
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-display text-sm font-bold border transition-all ${
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center font-display text-xs font-bold border transition-all ${
                     isFullyDone
                       ? 'bg-jade-500/20 border-jade-500 text-jade-300'
                       : isToday
@@ -459,14 +642,14 @@ export default function Home({ onNavigate }) {
                   </div>
 
                   {/* 4 mini dots for the pillars */}
-                  <div className="flex gap-1 justify-center mt-0.5">
+                  <div className="flex gap-0.5 justify-center">
                     {pillarsList.map((p) => {
-                      const completed = !!dailyDone[dateStr + ':' + p];
+                      const completed = isDoneForDate(p, day);
                       return (
                         <div
                           key={p}
                           title={`${p.toUpperCase()} ${completed ? 'Concluído' : 'Pendente'}`}
-                          className={`w-1.5 h-1.5 rounded-full transition-all ${
+                          className={`w-1 h-1 rounded-full transition-all ${
                             completed ? dotColors[p] : 'bg-ink-700'
                           }`}
                         />
@@ -525,39 +708,51 @@ export default function Home({ onNavigate }) {
         <div>
           <h2 className="text-ink-300 font-mono text-xs uppercase tracking-wider mb-4">Pilares de Hoje</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {pillars.map(p => (
-              <div
-                key={p.key}
-                className={`relative flex flex-col gap-3 p-5 rounded-2xl bg-ink-900 border transition-all duration-200 ${p.color} ${isDone(p.key) ? 'opacity-60' : ''}`}
-              >
-                {isDone(p.key) && (
-                  <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-jade-500/20 border border-jade-500/40 flex items-center justify-center">
-                    <span className="text-jade-400 text-xs">✓</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl">{p.icon}</span>
-                  <div>
-                    <h3 className={`font-bold font-display text-base ${p.accent}`}>{p.label}</h3>
-                    <p className="text-ink-400 font-mono text-[10px] truncate max-w-[200px]">{p.sublabel}</p>
-                  </div>
-                </div>
-                <p className="text-ink-400 text-xs font-body leading-relaxed">{p.desc}</p>
-                <button
-                  onClick={p.action}
-                  className={`mt-auto px-4 py-2 rounded-lg text-xs font-bold font-mono border transition-all self-start ${p.btnColor}`}
+            {pillars.map(p => {
+              const effDate = getEffectiveDate(p.key, selectedDate);
+              const isCatchUp = effDate.toDateString() !== selectedDate.toDateString();
+              
+              return (
+                <div
+                  key={p.key}
+                  className={`relative flex flex-col gap-3 p-5 rounded-2xl bg-ink-900 border transition-all duration-200 ${p.color} ${isDone(p.key) ? 'opacity-60' : ''}`}
                 >
-                  {p.cta}
-                </button>
-              </div>
-            ))}
+                  {isDone(p.key) && (
+                    <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-jade-500/20 border border-jade-500/40 flex items-center justify-center">
+                      <span className="text-jade-400 text-xs">✓</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">{p.icon}</span>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className={`font-bold font-display text-base ${p.accent}`}>{p.label}</h3>
+                        {isCatchUp && (
+                          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-orange-500/15 border border-orange-500/30 text-orange-300 animate-pulse">
+                            Catch-up: {effDate.getDate()}/{effDate.getMonth() + 1}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-ink-400 font-mono text-[10px] truncate max-w-[200px]">{p.sublabel}</p>
+                    </div>
+                  </div>
+                  <p className="text-ink-400 text-xs font-body leading-relaxed">{p.desc}</p>
+                  <button
+                    onClick={p.action}
+                    className={`mt-auto px-4 py-2 rounded-lg text-xs font-bold font-mono border transition-all self-start ${p.btnColor}`}
+                  >
+                    {p.cta}
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
 
         {/* ── Pré-visualização Gramática ── */}
         <div
           className="bg-ink-900 border border-azure-500/15 rounded-2xl p-5 cursor-pointer hover:border-azure-500/35 transition group"
-          onClick={() => { setGrammarModal(true); markDone('grammar'); }}
+          onClick={() => { setSelectedGrammarPoint(grammarPoint); markDone('grammar'); }}
         >
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1">
@@ -587,14 +782,15 @@ export default function Home({ onNavigate }) {
       </div>
 
       {/* Modals */}
-      {grammarModal && (
-        <GrammarModal point={grammarPoint} onClose={() => setGrammarModal(false)} />
+      {selectedGrammarPoint && (
+        <GrammarModal point={selectedGrammarPoint} onClose={() => setSelectedGrammarPoint(null)} />
       )}
       {lessonModal && (
         <LessonModal
           chars={lessonChars}
           knownChars={knownSet}
           onLearn={handleLearnChar}
+          onOpenGrammarPoint={(pt) => setSelectedGrammarPoint(pt)}
           onClose={() => { setLessonModal(false); markDone('lesson'); loadCards(); }}
         />
       )}

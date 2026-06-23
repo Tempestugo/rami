@@ -22,7 +22,7 @@ export default function DetailsPanel() {
   const [quizActive, setQuizActive] = useState(false);
   const [quizResult, setQuizResult] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
-  const [srsState, setSrsState] = useState({ known: false, level: 1 });
+  const [srsState, setSrsState] = useState({ known: false, level: 1, practice_count: 0 });
   const [loadingSrs, setLoadingSrs] = useState(false);
 
   useEffect(() => {
@@ -36,7 +36,11 @@ export default function DetailsPanel() {
       .then(res => res.json())
       .then(data => {
         if (data.success) {
-          setSrsState({ known: data.known, level: data.srs_level || 1 });
+          setSrsState({ 
+            known: data.known, 
+            level: data.srs_level || 1,
+            practice_count: data.practice_count || 0
+          });
         }
       })
       .catch(err => console.error('Erro ao buscar status do card:', err))
@@ -54,7 +58,7 @@ export default function DetailsPanel() {
       });
       const data = await res.json();
       if (data.success) {
-        setSrsState({ known: true, level: 1 });
+        setSrsState({ known: true, level: 1, practice_count: 0 });
       }
     } catch (err) {
       console.error(err);
@@ -74,7 +78,7 @@ export default function DetailsPanel() {
       });
       const data = await res.json();
       if (data.success) {
-        setSrsState({ known: true, level });
+        setSrsState({ known: true, level, practice_count: 0 });
       }
     } catch (err) {
       console.error(err);
@@ -94,7 +98,7 @@ export default function DetailsPanel() {
       });
       const data = await res.json();
       if (data.success) {
-        setSrsState({ known: false, level: 1 });
+        setSrsState({ known: false, level: 1, practice_count: 0 });
       }
     } catch (err) {
       console.error(err);
@@ -268,6 +272,7 @@ export default function DetailsPanel() {
               </div>
               <p className="text-[10px] text-ink-400 font-body text-center italic">
                 {LEVEL_NAMES[srsState.level] || 'Nível'} (SRS)
+                {srsState.level < 5 && ` • ${srsState.practice_count || 0}/5 práticas corretas para subir`}
               </p>
               <button
                 onClick={handleRemoveFromKnown}

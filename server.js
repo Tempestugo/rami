@@ -191,7 +191,7 @@ app.post('/api/progress', async (req, res) => {
 app.get('/api/cards/:userId', async (req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT \`char\`, srs_level FROM user_cards WHERE user_id = ?`,
+      `SELECT \`char\`, srs_level, practice_count FROM user_cards WHERE user_id = ?`,
       [req.params.userId]
     );
     const enriched = rows.map(row => {
@@ -199,6 +199,7 @@ app.get('/api/cards/:userId', async (req, res) => {
       return {
         char: row.char,
         srs_level: row.srs_level,
+        practice_count: row.practice_count || 0,
         ...extra
       };
     });
@@ -211,13 +212,18 @@ app.get('/api/cards/:userId', async (req, res) => {
 app.get('/api/cards/:userId/status/:char', async (req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT srs_level FROM user_cards WHERE user_id = ? AND \`char\` = ?`,
+      `SELECT srs_level, practice_count FROM user_cards WHERE user_id = ? AND \`char\` = ?`,
       [req.params.userId, req.params.char]
     );
     if (rows.length > 0) {
-      res.json({ success: true, known: true, srs_level: rows[0].srs_level });
+      res.json({ 
+        success: true, 
+        known: true, 
+        srs_level: rows[0].srs_level, 
+        practice_count: rows[0].practice_count || 0 
+      });
     } else {
-      res.json({ success: true, known: false, srs_level: null });
+      res.json({ success: true, known: false, srs_level: null, practice_count: 0 });
     }
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -226,16 +232,52 @@ app.get('/api/cards/:userId/status/:char', async (req, res) => {
 
 app.post('/api/cards', async (req, res) => {
   try {
-    const { user_id = 1, char, srs_level = 1 } = req.body;
+    const { user_id = 1, char, srs_level, vote } = req.body;
     if (!char) {
       return res.status(400).json({ error: 'Character (char) is required' });
     }
-    await pool.query(
-      `INSERT INTO user_cards (user_id, \`char\`, srs_level) 
-       VALUES (?, ?, ?) 
-       ON DUPLICATE KEY UPDATE srs_level = VALUES(srs_level)`,
-      [user_id, char, srs_level]
-    );
+
+    if (vote) {
+      const [rows] = await pool.query(
+        `SELECT srs_level, practice_count FROM user_cards WHERE user_id = ? AND \`char\` = ?`,
+        [user_id, char]
+      );
+      if (rows.length > 0) {
+        let currentLevel = rows[0].srs_level || 1;
+        let practiceCount = rows[0].practice_count || 0;
+
+        if (vote === 'remembered') {
+          practiceCount += 1;
+          if (practiceCount >= 5) {
+            practiceCount = 0;
+            currentLevel = Math.min(5, currentLevel + 1);
+          }
+        } else if (vote === 'forgot') {
+          currentLevel = Math.max(1, currentLevel - 1);
+          practiceCount = 0;
+        }
+
+        await pool.query(
+          `UPDATE user_cards SET srs_level = ?, practice_count = ? WHERE user_id = ? AND \`char\` = ?`,
+          [currentLevel, practiceCount, user_id, char]
+        );
+      } else {
+        const initialLevel = 1;
+        const initialCount = vote === 'remembered' ? 1 : 0;
+        await pool.query(
+          `INSERT INTO user_cards (user_id, \`char\`, srs_level, practice_count) VALUES (?, ?, ?, ?)`,
+          [user_id, char, initialLevel, initialCount]
+        );
+      }
+    } else {
+      const targetLevel = srs_level !== undefined ? srs_level : 1;
+      await pool.query(
+        `INSERT INTO user_cards (user_id, \`char\`, srs_level, practice_count) 
+         VALUES (?, ?, ?, 0) 
+         ON DUPLICATE KEY UPDATE srs_level = VALUES(srs_level), practice_count = 0`,
+        [user_id, char, targetLevel]
+      );
+    }
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -334,10 +376,20 @@ async function initializeDatabase() {
         user_id INT NOT NULL,
         \`char\` VARCHAR(10) NOT NULL,
         srs_level TINYINT NOT NULL DEFAULT 1,
+        practice_count TINYINT NOT NULL DEFAULT 0,
         slot INT NULL,
         UNIQUE KEY uq_user_card (user_id, \`char\`)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
+    
+    // Migração de tabela existente
+    try {
+      await pool.query(`ALTER TABLE user_cards ADD COLUMN practice_count TINYINT NOT NULL DEFAULT 0`);
+      console.log('✅ Coluna practice_count adicionada com sucesso a user_cards.');
+    } catch (e) {
+      // Ignora erro se a coluna já existe
+    }
+
     await pool.query(`
       CREATE TABLE IF NOT EXISTS user_deck (
         id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

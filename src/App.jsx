@@ -10,6 +10,7 @@ import LumiWarfare from './features/LumiWarfare';
 import SiegeMode from './features/SiegeMode';
 import CardCollection from './features/CardCollection.jsx';
 import FraseCook from './features/FraseCook';
+import UserProfile from './features/UserProfile.jsx';
 
 const MODES = {
   HOME:    'home',
@@ -19,6 +20,7 @@ const MODES = {
   SIEGE:   'siege',
   CARDS:   'cards', // Novo modo
   WARFARE: 'warfare',
+  USER:    'user',
 };
 
 const NAV = [
@@ -29,6 +31,7 @@ const NAV = [
   { key: MODES.FRASE,   label: 'Frases',   icon: '🀄' },
   { key: MODES.SIEGE,   label: 'Cerco',    icon: '🏯' },
   { key: MODES.WARFARE, label: 'Arena',    icon: '⚔️' },
+  { key: MODES.USER,    label: 'Usuário',  icon: '👤' },
 ];
 
 export default function App() {
@@ -42,6 +45,7 @@ export default function App() {
     [MODES.SIEGE]:   ['Modo Cerco',  '🏯 Defenda desenhando'],
     [MODES.CARDS]:   ['Minhas Cartas','🎴 Coleção de Ideogramas'],
     [MODES.WARFARE]: ['Lumi Warfare','⚔️ Campo de Batalha'],
+    [MODES.USER]:    ['Usuário',     '👤 Perfil e Configurações'],
   };
 
   const [title, subtitle] = headerTitle[mode] || ['Rami', ''];
@@ -72,6 +76,7 @@ export default function App() {
                   : key === MODES.STUDY   ? 'bg-white/10 border-white/30 text-white'
                   : key === MODES.FRASE   ? 'bg-gold-500/10 border-gold-400 text-gold-300'
                   : key === MODES.SIEGE   ? 'bg-gold-500/10 border-gold-400 text-gold-300'
+                  : key === MODES.USER    ? 'bg-vermillion-500/15 border-vermillion-500/60 text-vermillion-300'
                   :                         'bg-vermillion-500/10 border-vermillion-500 text-vermillion-400'
                   : 'bg-white/5 border-white/10 text-ink-400 hover:bg-white/8 hover:text-ink-200'
               }`}
@@ -87,6 +92,10 @@ export default function App() {
       {/* ── Conteúdo ──────────────────────────────────────────────────────── */}
       {mode === MODES.HOME && (
         <Home onNavigate={(dest) => setMode(dest === 'learn' ? MODES.LEARN : dest === 'study' ? MODES.STUDY : MODES.HOME)} />
+      )}
+
+      {mode === MODES.USER && (
+        <UserProfile />
       )}
 
       {mode === MODES.LEARN && (

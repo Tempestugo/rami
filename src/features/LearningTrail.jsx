@@ -27,6 +27,16 @@ function isChineseChar(char) {
   return /[\u4e00-\u9fa5]/.test(char);
 }
 
+// Divide uma string de pinyin (que pode conter palavras agrupadas por espaço) em sílabas individuais
+function splitPinyinIntoSyllables(pinyinStr) {
+  if (!pinyinStr) return [];
+  let clean = pinyinStr.toLowerCase().replace(/v/g, 'ü');
+  // Expressão regular para casar sílabas individuais de pinyin
+  const regex = /(zh|ch|sh|[b-df-hj-np-tv-z])?([aeiouvüāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜü]+r?)(ng|n)?/gi;
+  const matches = clean.match(regex) || [];
+  return matches;
+}
+
 // Converte sílaba de pinyin + tom em caractere com acento correspondente
 function addToneToSyllable(syllable, tone) {
   const t = parseInt(tone, 10);
@@ -135,6 +145,90 @@ export default function LearningTrail() {
   const [pinyinResults, setPinyinResults] = useState({}); // { charIndex: true|false }
   const [activeInputIdx, setActiveInputIdx] = useState(null);
 
+  // Estados de Controle do Modal de Detalhes do Caractere
+  const [detailsChar, setDetailsChar] = useState(null);
+  const [detailsCharInfo, setDetailsCharInfo] = useState(null);
+  const detailsWriterRef = useRef(null);
+  const detailsDivRef = useRef(null);
+
+  const handleOpenDetails = (char) => {
+    setDetailsChar(char);
+    const localData = hanziMap.get(char);
+    const knownCard = knownCards.find(c => c.char === char);
+    
+    setDetailsCharInfo({
+      id: char,
+      pinyin: knownCard?.pinyin || localData?.pinyin || '',
+      meaning: knownCard?.meaning_pt || localData?.meaning || '',
+      hsk: localData?.hsk || 1,
+      components: localData?.components || [],
+      tags: localData?.tags || []
+    });
+
+    fetch(`/api/graph/character/${encodeURIComponent(char)}`)
+      .then(res => res.json())
+      .then(resData => {
+        if (resData.success && resData.data) {
+          setDetailsCharInfo(prev => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              pinyin: resData.data.pinyin || prev.pinyin,
+              meaning: resData.data.meaning || prev.meaning,
+              hsk: resData.data.hsk || prev.hsk,
+              components: resData.data.components || prev.components,
+              tags: resData.data.tags || prev.tags
+            };
+          });
+        }
+      })
+      .catch(err => console.error('Erro ao buscar detalhes do caractere:', err));
+  };
+
+  const handleCloseDetails = () => {
+    if (detailsWriterRef.current) {
+      try { detailsWriterRef.current.cancelQuiz(); } catch (_) {}
+    }
+    setDetailsChar(null);
+    setDetailsCharInfo(null);
+  };
+
+  const handleRepeatDetailsAnimation = () => {
+    if (detailsWriterRef.current) {
+      try { detailsWriterRef.current.animateCharacter(); } catch (_) {}
+    }
+  };
+
+  const initDetailsHanziWriter = useCallback((char) => {
+    if (!detailsDivRef.current) return;
+    detailsDivRef.current.innerHTML = '';
+    
+    const writer = HanziWriter.create(detailsDivRef.current, char, {
+      width: 140,
+      height: 140,
+      padding: 10,
+      showOutline: true,
+      strokeColor: '#3b82f6', // Azure 500
+      outlineColor: 'rgba(255, 255, 255, 0.1)',
+      charDataLoader: (c) => {
+        return fetch(`https://cdn.jsdelivr.net/npm/hanzi-writer-data@2.0/${c}.json`)
+          .then(res => res.json());
+      }
+    });
+
+    detailsWriterRef.current = writer;
+    writer.animateCharacter();
+  }, []);
+
+  useEffect(() => {
+    if (detailsChar) {
+      const timeout = setTimeout(() => {
+        initDetailsHanziWriter(detailsChar);
+      }, 50);
+      return () => clearTimeout(timeout);
+    }
+  }, [detailsChar, initDetailsHanziWriter]);
+
   // 1. Carregar cartas conhecidas no Dashboard
   const loadKnownCards = useCallback(() => {
     setLoadingCards(true);
@@ -174,8 +268,8 @@ export default function LearningTrail() {
     setLoadingCards(true);
 
     try {
-      // Pega todos os caracteres conhecidos pelo usuário
-      const chars = knownCards.map(c => c.char);
+      // Pega todos os caracteres conhecidos pelo usuário com seus níveis SRS
+      const chars = knownCards.map(c => ({ char: c.char, srs_level: c.srs_level }));
       
       // Busca frases contendo estes caracteres no banco (cobertura >= 80% do caractere no backend)
       const res = await fetch('/api/phrases/build', {
@@ -418,11 +512,17 @@ export default function LearningTrail() {
 
       // 3. Se for Caso 2 (pinyin), preencher inputs corretos e marcar como verificado
       if (activeCase === 2) {
-        const officialPinyinArray = activePhrase.pinyin.split(/\s+/);
+        const officialSyllables = splitPinyinIntoSyllables(activePhrase.pinyin);
         const inputs = {};
         const results = {};
         chineseChars.forEach((char, idx) => {
-          inputs[idx] = officialPinyinArray[idx] || '';
+          let correctAnswer = '';
+          if (officialSyllables.length === chineseChars.length) {
+            correctAnswer = officialSyllables[idx] || '';
+          } else {
+            correctAnswer = hanziMap.get(char)?.pinyin || '';
+          }
+          inputs[idx] = correctAnswer;
           results[idx] = true;
         });
         setPinyinInputs(inputs);
@@ -468,18 +568,31 @@ export default function LearningTrail() {
   const handleCheckPinyinAnswers = () => {
     const chars = [...activePhrase.phrase].filter(c => c.trim()).filter(isChineseChar);
     
-    // O pinyin retornado pode conter espaços ou ser um texto corrido.
-    // Vamos separar o pinyin oficial da frase por espaços
-    const officialPinyinArray = activePhrase.pinyin.split(/\s+/);
+    // Divide o pinyin oficial da frase em sílabas individuais usando regex
+    const officialSyllables = splitPinyinIntoSyllables(activePhrase.pinyin);
     
     const results = {};
     const votes = {};
     
     chars.forEach((char, idx) => {
       const userInput = normalizePinyin(pinyinInputs[idx] || '');
-      const correctAnswer = normalizePinyin(officialPinyinArray[idx] || '');
       
-      const isCorrect = userInput === correctAnswer;
+      // Resposta oficial contextual baseada no índice da sílaba
+      let correctAnswer = '';
+      if (officialSyllables.length === chars.length) {
+        correctAnswer = normalizePinyin(officialSyllables[idx] || '');
+      } else {
+        // Fallback de tamanho diferente
+        const dbChar = hanziMap.get(char);
+        correctAnswer = normalizePinyin(dbChar?.pinyin || '');
+      }
+      
+      // Resposta padrão do dicionário
+      const dbChar = hanziMap.get(char);
+      const standardAnswer = dbChar ? normalizePinyin(dbChar.pinyin) : '';
+      
+      // É correto se coincidir com o pinyin do texto ou do dicionário
+      const isCorrect = (userInput === correctAnswer) || (userInput === standardAnswer);
       results[idx] = isCorrect;
       
       // Determina voto baseado na correção da resposta do pinyin
@@ -505,13 +618,21 @@ export default function LearningTrail() {
       const currentLevel = knownCardObj ? knownCardObj.srs_level : 1;
       originalLevels[char] = currentLevel;
 
-      // Se lembrou: sobe level (+1), se esqueceu: desce (-1)
+      // Se lembrou: incrementa contador de práticas corretas. Sobe nível se chegar a 5.
+      // Se esqueceu: reseta contador e desce nível.
       const vote = assessmentVotes[char] || 'remembered';
       let nextLevel = currentLevel;
+      let nextCount = knownCardObj ? (knownCardObj.practice_count || 0) : 0;
+      
       if (vote === 'remembered') {
-        nextLevel = Math.min(5, currentLevel + 1);
+        nextCount += 1;
+        if (nextCount >= 5) {
+          nextCount = 0;
+          nextLevel = Math.min(5, currentLevel + 1);
+        }
       } else {
         nextLevel = Math.max(1, currentLevel - 1);
+        nextCount = 0;
       }
       newLevels[char] = nextLevel;
 
@@ -521,7 +642,7 @@ export default function LearningTrail() {
           fetch('/api/cards', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: 1, char, srs_level: nextLevel })
+            body: JSON.stringify({ user_id: 1, char, vote })
           })
         );
       }
@@ -533,6 +654,27 @@ export default function LearningTrail() {
     } catch (e) {
       console.error('Erro ao atualizar SRS no banco de dados:', e);
     }
+
+    // Atualiza o estado local de conhecidos
+    setKnownCards(prev => prev.map(c => {
+      const vote = assessmentVotes[c.char];
+      if (vote) {
+        let nextLevel = c.srs_level;
+        let nextCount = c.practice_count || 0;
+        if (vote === 'remembered') {
+          nextCount += 1;
+          if (nextCount >= 5) {
+            nextCount = 0;
+            nextLevel = Math.min(5, c.srs_level + 1);
+          }
+        } else {
+          nextLevel = Math.max(1, c.srs_level - 1);
+          nextCount = 0;
+        }
+        return { ...c, srs_level: nextLevel, practice_count: nextCount };
+      }
+      return c;
+    }));
 
     // Salva histórico local da sessão
     setSessionHistory(prev => [
@@ -837,7 +979,22 @@ export default function LearningTrail() {
                   
                   return (
                     <div key={idx} className="flex flex-col items-center gap-2 p-3 bg-ink-900 border border-white/5 rounded-xl transition-all duration-200">
-                      <span className="text-xl font-display font-bold text-white">{char}</span>
+                      <span 
+                        onClick={() => hasChecked && handleOpenDetails(char)}
+                        className={`text-xl font-display font-bold text-white select-none ${
+                          hasChecked 
+                            ? 'cursor-pointer hover:text-gold-400 hover:scale-110 active:scale-95 transition-all duration-150 relative group' 
+                            : ''
+                        }`}
+                        title={hasChecked ? "Ver detalhes" : ""}
+                      >
+                        {char}
+                        {hasChecked && (
+                          <span className="absolute -top-1.5 -right-2 w-3.5 h-3.5 bg-gold-500 rounded-full border border-ink-900 scale-0 group-hover:scale-100 transition-all duration-150 flex items-center justify-center text-[8px] text-ink-950 font-bold font-mono">
+                            i
+                          </span>
+                        )}
+                      </span>
                       <input
                         type="text"
                         disabled={hasChecked}
@@ -1006,6 +1163,99 @@ export default function LearningTrail() {
                   ✕ Fechar
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Detalhes do Caractere (Tipo Explorer) */}
+        {detailsChar && detailsCharInfo && (
+          <div 
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 animate-fade-in"
+            onClick={handleCloseDetails}
+          >
+            <div 
+              className="bg-ink-900 border border-white/15 rounded-3xl p-6 flex flex-col items-center gap-4 max-w-sm w-full relative shadow-2xl animate-scale-up"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Botão Fechar */}
+              <button 
+                onClick={handleCloseDetails}
+                className="absolute top-4 right-4 text-ink-400 hover:text-white transition-colors p-1"
+                aria-label="Fechar"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+
+              {/* HSK Badge */}
+              <span className="text-xs font-mono font-bold px-3 py-1 rounded-full border bg-white/5 border-white/10 text-azure-300 mt-2">
+                HSK {detailsCharInfo.hsk}
+              </span>
+
+              {/* Caractere Grande */}
+              <div className="font-display text-8xl text-white font-bold leading-none select-none my-2 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+                {detailsCharInfo.id}
+              </div>
+
+              {/* Pinyin */}
+              <div className="text-gold-400 font-mono text-2xl font-bold tracking-wide">
+                {detailsCharInfo.pinyin}
+              </div>
+
+              {/* Significado / Tradução */}
+              <div className="text-ink-200 text-sm text-center font-body leading-relaxed max-w-[280px]">
+                {detailsCharInfo.meaning}
+              </div>
+
+              {/* Tags */}
+              {detailsCharInfo.tags && detailsCharInfo.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 justify-center max-w-[280px]">
+                  {detailsCharInfo.tags.map(tag => (
+                    <span key={tag} className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-ink-400 border border-white/10 font-mono">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <div className="w-full h-px bg-white/10 my-1" />
+
+              {/* Visualização de Traços */}
+              <div className="flex flex-col items-center gap-3">
+                <span className="text-[10px] text-ink-400 uppercase tracking-widest font-mono">Ordem dos Traços</span>
+                <div 
+                  ref={detailsDivRef}
+                  className="rounded-xl border border-white/10 bg-white/[0.02] flex items-center justify-center overflow-hidden"
+                  style={{ width: 140, height: 140 }}
+                  onClick={handleRepeatDetailsAnimation}
+                  title="Clique para animar"
+                />
+                
+                <button
+                  onClick={handleRepeatDetailsAnimation}
+                  className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-ink-800 border border-white/15 text-ink-200 hover:bg-ink-700 hover:text-white transition-all duration-150"
+                >
+                  ⚡ Animar Novamente
+                </button>
+              </div>
+
+              {/* Componentes */}
+              {detailsCharInfo.components && detailsCharInfo.components.length > 0 && (
+                <div className="w-full mt-2 flex flex-col items-center gap-2">
+                  <span className="text-[10px] text-ink-400 uppercase tracking-widest font-mono">Componentes</span>
+                  <div className="flex gap-2 flex-wrap justify-center">
+                    {detailsCharInfo.components.map(c => (
+                      <span key={c}
+                        className="font-display text-lg w-9 h-9 flex items-center justify-center
+                                   rounded-lg bg-ink-800 border border-white/10 text-ink-200 shadow-inner">
+                        {c}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
             </div>
           </div>
         )}
