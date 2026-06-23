@@ -11,7 +11,7 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { phraseData } from '../data/phraseData.js';
+import { phraseData } from '@/data/phraseData.js';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
