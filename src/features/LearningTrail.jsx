@@ -104,6 +104,20 @@ export default function LearningTrail() {
 
   // 2. Iniciar Sessão de Treino
   const startSession = async (type) => {
+    // ---- Weekly limit ----
+    const now = new Date();
+    const year = now.getFullYear();
+    const week = Math.ceil(((now - new Date(year,0,1)) / 86400000 + new Date(year,0,1).getDay()+1)/7);
+    const weekKey = `practice_week_${year}_W${week}`;
+    const used = parseInt(localStorage.getItem(weekKey) || '0', 10);
+    if (used >= 3) {
+      alert('Você já praticou frases 3 vezes esta semana. Volte na próxima semana.');
+      return;
+    }
+    localStorage.setItem(weekKey, used + 1);
+    // ---- End weekly limit ----
+    if (knownCards.length === 0) return;
+
     if (knownCards.length === 0) return;
     setPracticeType(type);
     setLoadingCards(true);
@@ -330,6 +344,15 @@ export default function LearningTrail() {
   };
 
   // Concluir Desenho de todos os caracteres da frase -> Iniciar Auto-avaliação SRS
+  const handleRevealAndSkip = () => {
+    // Revela dica (outline) e avança para a próxima frase sem avaliação
+    handleShowHint();
+    goToNextPhrase();
+  };
+
+  const handleFinishDrawingSession = () => {
+    // Entra na fase de votação SRS
+    setSrsSelfAssessment('review_phase');
   const handleFinishDrawingSession = () => {
     // Entra na fase de votação SRS
     setSrsSelfAssessment('review_phase');
