@@ -22,6 +22,59 @@ function normalizePinyin(str) {
     .trim();
 }
 
+// Verifica se o caractere é ideograma chinês
+function isChineseChar(char) {
+  return /[\u4e00-\u9fa5]/.test(char);
+}
+
+// Converte sílaba de pinyin + tom em caractere com acento correspondente
+function addToneToSyllable(syllable, tone) {
+  const t = parseInt(tone, 10);
+  if (isNaN(t) || t < 1 || t > 5) return syllable;
+  let s = syllable.toLowerCase().replace(/v/g, 'ü');
+  
+  const toneMap = {
+    'a': ['ā', 'á', 'ǎ', 'à', 'a'],
+    'o': ['ō', 'ó', 'ǒ', 'ò', 'o'],
+    'e': ['ē', 'é', 'ě', 'è', 'e'],
+    'i': ['ī', 'í', 'ǐ', 'ì', 'i'],
+    'u': ['ū', 'ú', 'ǔ', 'ù', 'u'],
+    'ü': ['ǖ', 'ǘ', 'ǚ', 'ǜ', 'ü']
+  };
+
+  let vowelToAccent = null;
+  if (s.includes('a')) {
+    vowelToAccent = 'a';
+  } else if (s.includes('o')) {
+    vowelToAccent = 'o';
+  } else if (s.includes('e')) {
+    vowelToAccent = 'e';
+  } else if (s.includes('ui')) {
+    vowelToAccent = 'i';
+  } else if (s.includes('iu')) {
+    vowelToAccent = 'u';
+  } else if (s.includes('i')) {
+    vowelToAccent = 'i';
+  } else if (s.includes('u')) {
+    vowelToAccent = 'u';
+  } else if (s.includes('ü')) {
+    vowelToAccent = 'ü';
+  }
+
+  if (vowelToAccent) {
+    const replacement = toneMap[vowelToAccent][t - 1];
+    if (vowelToAccent === 'i' && s.includes('ui')) {
+      s = s.replace('ui', 'u' + replacement);
+    } else if (vowelToAccent === 'u' && s.includes('iu')) {
+      s = s.replace('iu', 'i' + replacement);
+    } else {
+      s = s.replace(vowelToAccent, replacement);
+    }
+  }
+
+  return s;
+}
+
 const hanziMap = new Map(hanziData.map(h => [h.id, h]));
 
 function getCharacterContext(char) {
@@ -80,6 +133,7 @@ export default function LearningTrail() {
   const [pinyinInputs, setPinyinInputs] = useState({}); // { charIndex: 'wo' }
   const [pinyinChecked, setPinyinChecked] = useState(false);
   const [pinyinResults, setPinyinResults] = useState({}); // { charIndex: true|false }
+  const [activeInputIdx, setActiveInputIdx] = useState(null);
 
   // 1. Carregar cartas conhecidas no Dashboard
   const loadKnownCards = useCallback(() => {
@@ -114,10 +168,7 @@ export default function LearningTrail() {
       alert('Você já praticou frases 3 vezes esta semana. Volte na próxima semana.');
       return;
     }
-    localStorage.setItem(weekKey, used + 1);
     // ---- End weekly limit ----
-    if (knownCards.length === 0) return;
-
     if (knownCards.length === 0) return;
     setPracticeType(type);
     setLoadingCards(true);
@@ -220,6 +271,7 @@ export default function LearningTrail() {
     setPinyinInputs({});
     setPinyinChecked(false);
     setPinyinResults({});
+    setActiveInputIdx(null);
     setMistakesCount(0);
 
     // Determina o caso de teste (Caso 1 ou Caso 2)
@@ -345,21 +397,51 @@ export default function LearningTrail() {
 
   // Concluir Desenho de todos os caracteres da frase -> Iniciar Auto-avaliação SRS
   const handleRevealAndSkip = () => {
-    // Revela dica (outline) e avança para a próxima frase sem avaliação
-    handleShowHint();
-    goToNextPhrase();
+    if (!activePhrase) return;
+    const chars = [...activePhrase.phrase].filter(c => c.trim());
+    const chineseChars = chars.filter(isChineseChar);
+    const allCompleted = chineseChars.every(c => completedChars[c]);
+    const isPinyinDone = activeCase === 1 || pinyinChecked;
+    const isFullyRevealed = allCompleted && isPinyinDone && showPinyin && showMeaning;
+
+    if (!isFullyRevealed) {
+      // 1. Marcar todos os caracteres chineses como completados
+      const newCompleted = {};
+      chineseChars.forEach(c => {
+        newCompleted[c] = true;
+      });
+      setCompletedChars(newCompleted);
+
+      // 2. Mostrar pinyin e tradução
+      setShowPinyin(true);
+      setShowMeaning(true);
+
+      // 3. Se for Caso 2 (pinyin), preencher inputs corretos e marcar como verificado
+      if (activeCase === 2) {
+        const officialPinyinArray = activePhrase.pinyin.split(/\s+/);
+        const inputs = {};
+        const results = {};
+        chineseChars.forEach((char, idx) => {
+          inputs[idx] = officialPinyinArray[idx] || '';
+          results[idx] = true;
+        });
+        setPinyinInputs(inputs);
+        setPinyinResults(results);
+        setPinyinChecked(true);
+      }
+    } else {
+      // 4. Se já está tudo revelado, pula para a próxima
+      goToNextPhrase();
+    }
   };
 
-  const handleFinishDrawingSession = () => {
-    // Entra na fase de votação SRS
-    setSrsSelfAssessment('review_phase');
   const handleFinishDrawingSession = () => {
     // Entra na fase de votação SRS
     setSrsSelfAssessment('review_phase');
     
     // Inicializa votos: se o caractere foi desenhado de primeira sem dica (erros < 3), vota "lembrei", senão "esqueci"
     const initialVotes = {};
-    const phraseChars = [...activePhrase.phrase].filter(c => c.trim());
+    const phraseChars = [...activePhrase.phrase].filter(c => c.trim()).filter(isChineseChar);
     phraseChars.forEach(c => {
       initialVotes[c] = 'remembered'; // padrão inicial amigável
     });
@@ -372,11 +454,19 @@ export default function LearningTrail() {
 
   // 5. Lógica de Validação Pinyin (Caso 2)
   const handlePinyinInputChange = (idx, value) => {
-    setPinyinInputs(prev => ({ ...prev, [idx]: value }));
+    // Se o valor digitado terminar com um número 1-5 (ex: "hao3" ou "hao 3"), converte automaticamente
+    let newVal = value;
+    const match = value.match(/^([a-zA-ZüÜvV]+)\s*([1-5])$/);
+    if (match) {
+      const syllable = match[1];
+      const toneNum = match[2];
+      newVal = addToneToSyllable(syllable, toneNum);
+    }
+    setPinyinInputs(prev => ({ ...prev, [idx]: newVal }));
   };
 
   const handleCheckPinyinAnswers = () => {
-    const chars = [...activePhrase.phrase].filter(c => c.trim());
+    const chars = [...activePhrase.phrase].filter(c => c.trim()).filter(isChineseChar);
     
     // O pinyin retornado pode conter espaços ou ser um texto corrido.
     // Vamos separar o pinyin oficial da frase por espaços
@@ -408,7 +498,7 @@ export default function LearningTrail() {
     const newLevels = {};
     const updates = [];
 
-    const charsInPhrase = [...activePhrase.phrase].filter(c => c.trim());
+    const charsInPhrase = [...activePhrase.phrase].filter(c => c.trim()).filter(isChineseChar);
 
     for (const char of charsInPhrase) {
       const knownCardObj = knownCards.find(c => c.char === char);
@@ -467,15 +557,31 @@ export default function LearningTrail() {
     } else {
       // Salva a data da última sessão de prática
       localStorage.setItem('rami_last_practice_date', new Date().toISOString());
+      
+      // Incrementa o contador da semana
+      const now = new Date();
+      const year = now.getFullYear();
+      const week = Math.ceil(((now - new Date(year,0,1)) / 86400000 + new Date(year,0,1).getDay()+1)/7);
+      const weekKey = `practice_week_${year}_W${week}`;
+      const used = parseInt(localStorage.getItem(weekKey) || '0', 10);
+      localStorage.setItem(weekKey, used + 1);
+
       // Recarrega cards atualizados para o dashboard
       loadKnownCards();
       setViewState('SUMMARY');
     }
   };
 
-  const lastPracticeDate = localStorage.getItem('rami_last_practice_date');
-  const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
-  const canPractice = !lastPracticeDate || new Date(lastPracticeDate) < threeDaysAgo;
+  const getWeeklyPracticeCount = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const week = Math.ceil(((now - new Date(year,0,1)) / 86400000 + new Date(year,0,1).getDay()+1)/7);
+    const weekKey = `practice_week_${year}_W${week}`;
+    return parseInt(localStorage.getItem(weekKey) || '0', 10);
+  };
+
+  const weeklyCount = getWeeklyPracticeCount();
+  const canPractice = weeklyCount < 3;
 
   // 7. Renderização do Dashboard Inicial
   if (viewState === 'DASHBOARD') {
@@ -540,7 +646,7 @@ export default function LearningTrail() {
 
             {!canPractice && (
               <div className="text-center p-4 bg-ink-800 border border-white/10 rounded-xl text-sm text-ink-400 font-body">
-                Você já praticou recentemente. Para evitar repetição, a prática de frases estará disponível novamente em breve.
+                Você atingiu o limite semanal de 3 práticas de frases ({weeklyCount}/3). A prática estará disponível novamente na próxima semana.
               </div>
             )}
 
@@ -655,6 +761,14 @@ export default function LearningTrail() {
               {/* Blocos de Caracteres da Frase */}
               <div className="flex gap-4 items-center justify-center flex-wrap mt-4">
                 {chars.map((char, idx) => {
+                  if (!isChineseChar(char)) {
+                    return (
+                      <span key={idx} className="text-white text-3xl font-bold self-center px-1 font-display">
+                        {char}
+                      </span>
+                    );
+                  }
+
                   const isCompleted = completedChars[char];
                   const knownCard = knownCards.find(c => c.char === char);
                   const isSrsCard = !!knownCard;
@@ -715,14 +829,14 @@ export default function LearningTrail() {
                 )}
               </div>
 
-              {/* Inputs para cada ideograma */}
+              {/* Inputs para cada ideograma (filtrando pontuação) */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4 w-full max-w-md">
-                {chars.map((char, idx) => {
+                {chars.filter(isChineseChar).map((char, idx) => {
                   const hasChecked = pinyinChecked;
                   const isCorrect = pinyinResults[idx];
                   
                   return (
-                    <div key={idx} className="flex flex-col items-center gap-2 p-3 bg-ink-900 border border-white/5 rounded-xl">
+                    <div key={idx} className="flex flex-col items-center gap-2 p-3 bg-ink-900 border border-white/5 rounded-xl transition-all duration-200">
                       <span className="text-xl font-display font-bold text-white">{char}</span>
                       <input
                         type="text"
@@ -730,6 +844,12 @@ export default function LearningTrail() {
                         placeholder="pinyin"
                         value={pinyinInputs[idx] || ''}
                         onChange={(e) => handlePinyinInputChange(idx, e.target.value)}
+                        onFocus={() => setActiveInputIdx(idx)}
+                        onBlur={() => {
+                          setTimeout(() => {
+                            setActiveInputIdx(prev => prev === idx ? null : prev);
+                          }, 150);
+                        }}
                         className={`w-full bg-ink-950 border rounded px-2 py-1 text-center font-mono text-sm text-white focus:outline-none focus:border-gold-500 ${
                           hasChecked
                             ? isCorrect
@@ -738,6 +858,43 @@ export default function LearningTrail() {
                             : 'border-white/10'
                         }`}
                       />
+                      
+                      {/* Seletor de Tons Interativo */}
+                      {!hasChecked && activeInputIdx === idx && (
+                        <div className="flex gap-1 justify-center mt-2 flex-wrap w-full fade-in">
+                          {(() => {
+                            const typedSyllable = (pinyinInputs[idx] || '').trim();
+                            const cleanSyllable = normalizePinyin(typedSyllable);
+                            const options = [];
+                            if (cleanSyllable) {
+                              for (let t = 1; t <= 5; t++) {
+                                options.push({ tone: t, label: addToneToSyllable(cleanSyllable, t) });
+                              }
+                            } else {
+                              options.push({ tone: 1, label: '1 ˉ' });
+                              options.push({ tone: 2, label: '2 ˊ' });
+                              options.push({ tone: 3, label: '3 ˇ' });
+                              options.push({ tone: 4, label: '4 ˋ' });
+                              options.push({ tone: 5, label: '5 •' });
+                            }
+
+                            return options.map((opt) => (
+                              <button
+                                key={opt.tone}
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  if (cleanSyllable) {
+                                    handlePinyinInputChange(idx, opt.label);
+                                  }
+                                }}
+                                className="px-1 py-0.5 text-[9px] font-mono font-bold bg-white/5 border border-white/10 text-ink-300 rounded hover:bg-gold-500/25 hover:border-gold-500/50 hover:text-gold-300 transition-all duration-150"
+                              >
+                                {opt.label}
+                              </button>
+                            ));
+                          })()}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -866,15 +1023,15 @@ export default function LearningTrail() {
             onClick={handleRevealAndSkip}
             className="px-5 py-2 text-xs font-bold uppercase tracking-wider border border-white/10 rounded-lg text-ink-400 hover:text-white hover:bg-white/5 transition"
           >
-            Revelar & Pular ➔
+            {(chars.filter(isChineseChar).every(c => completedChars[c]) && (activeCase === 1 || pinyinChecked) && showPinyin && showMeaning) ? 'Próxima Frase ➔' : 'Revelar Tudo 👁️'}
           </button>
           {/* Botões do Caso 1 */}
           {activeCase === 1 && srsSelfAssessment === null && (
             <button
-              disabled={chars.some(c => !completedChars[c])}
+              disabled={chars.filter(isChineseChar).some(c => !completedChars[c])}
               onClick={handleFinishDrawingSession}
               className={`px-6 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider border transition-all ${
-                chars.every(c => completedChars[c])
+                chars.filter(isChineseChar).every(c => completedChars[c])
                   ? 'bg-azure-500/15 border-azure-400 text-azure-300 hover:bg-azure-500/25'
                   : 'bg-white/5 border-white/10 text-ink-600 cursor-not-allowed'
               }`}

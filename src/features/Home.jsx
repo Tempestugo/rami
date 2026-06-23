@@ -16,11 +16,13 @@ function estimateHskLevel(count) {
   return 6;
 }
 
-/** Seleciona o ponto gramatical do dia (rotação determinística) */
-function getDailyGrammarPoint(hskLevel) {
+/** Seleciona o ponto gramatical do dia (rotação determinística baseada na data) */
+function getDailyGrammarPoint(hskLevel, dateObj = new Date()) {
   const pool = grammarData.filter(g => g.hsk <= hskLevel);
   if (pool.length === 0) return grammarData[0];
-  const dayIndex = Math.floor(Date.now() / 86400000);
+  // Usa o timezone offset local para calcular o índice do dia local de forma estável
+  const localTime = dateObj.getTime() - dateObj.getTimezoneOffset() * 60000;
+  const dayIndex = Math.floor(localTime / 86400000);
   return pool[dayIndex % pool.length];
 }
 
@@ -187,6 +189,7 @@ export default function Home({ onNavigate }) {
   const [grammarModal, setGrammarModal] = useState(false);
   const [lessonModal, setLessonModal] = useState(false);
   const [addingChar, setAddingChar] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [dailyDone, setDailyDone] = useState(() => {
     try { return JSON.parse(localStorage.getItem('rami_daily_done') || '{}'); }
     catch { return {}; }
@@ -212,9 +215,26 @@ export default function Home({ onNavigate }) {
 
   // Derivados
   const hskLevel = estimateHskLevel(knownCards.length);
-  const grammarPoint = getDailyGrammarPoint(hskLevel);
+  const grammarPoint = getDailyGrammarPoint(hskLevel, selectedDate);
   const knownSet = new Set(knownCards.map(c => c.char));
   const today = new Date().toDateString();
+
+  // Gera os últimos 7 dias (terminando em hoje)
+  const getLast7Days = () => {
+    const list = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      list.push(d);
+    }
+    return list;
+  };
+  const last7Days = getLast7Days();
+
+  const getDayName = (date) => {
+    const names = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    return names[date.getDay()];
+  };
 
   // Lição do Dia: próximos 5 ideogramas do menor nível HSK com cartas faltando.
   let lessonChars = [];
@@ -236,14 +256,27 @@ export default function Home({ onNavigate }) {
   // Cards SRS com revisão pendente (aproximado: nível <= 3 como "pendentes para hoje")
   const srsReviewCount = knownCards.filter(c => c.srs_level <= 3).length;
 
-  // Marcar pilar como feito hoje
+  // Marcar pilar como feito na data selecionada
   const markDone = (key) => {
-    const updated = { ...dailyDone, [today + ':' + key]: true };
+    const dateStr = selectedDate.toDateString();
+    const updated = { ...dailyDone, [dateStr + ':' + key]: true };
     setDailyDone(updated);
     localStorage.setItem('rami_daily_done', JSON.stringify(updated));
   };
 
-  const isDone = (key) => dailyDone[today + ':' + key];
+  const isDone = (key) => {
+    const dateStr = selectedDate.toDateString();
+    return !!dailyDone[dateStr + ':' + key];
+  };
+
+  const isDoneForDate = (key, date) => {
+    return !!dailyDone[date.toDateString() + ':' + key];
+  };
+
+  const getCompletionsForDate = (date) => {
+    return ['srs', 'lesson', 'practice', 'grammar'].filter(k => isDoneForDate(k, date)).length;
+  };
+
   const doneCount = ['srs', 'lesson', 'practice', 'grammar'].filter(k => isDone(k)).length;
   const progressPct = Math.round((doneCount / 4) * 100);
 
@@ -263,6 +296,16 @@ export default function Home({ onNavigate }) {
     } catch (e) { console.error(e); }
     finally { setAddingChar(null); }
   };
+
+  const getWeeklyPracticeCount = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const week = Math.ceil(((now - new Date(year,0,1)) / 86400000 + new Date(year,0,1).getDay()+1)/7);
+    const weekKey = `practice_week_${year}_W${week}`;
+    return parseInt(localStorage.getItem(weekKey) || '0', 10);
+  };
+  const weeklyPracticeCount = getWeeklyPracticeCount();
+  const isPracticeLimitReached = weeklyPracticeCount >= 3;
 
   // ─── Render ───────────────────────────────────────────────────────────────
   const pillars = [
@@ -298,15 +341,26 @@ export default function Home({ onNavigate }) {
       key: 'practice',
       icon: '🟢',
       label: 'Praticar Frases',
-      sublabel: 'Frases com seus caracteres',
-      desc: 'Pratique escrita e leitura com frases reais do nível do seu vocabulário.',
+      sublabel: isPracticeLimitReached ? 'Limite semanal atingido (3/3)' : `Praticado ${weeklyPracticeCount}/3 vezes esta semana`,
+      desc: isPracticeLimitReached 
+        ? 'Você atingiu o limite semanal de 3 sessões de prática de frases.' 
+        : 'Pratique escrita e leitura com frases reais do nível do seu vocabulário.',
       color: 'border-jade-500/25 hover:border-jade-500/50',
       accent: 'text-jade-400',
       bg: 'bg-jade-500/5',
-      btnColor: 'bg-jade-500/15 border-jade-400/50 text-jade-300 hover:bg-jade-500/25',
+      btnColor: isPracticeLimitReached 
+        ? 'bg-ink-800 border-white/10 text-ink-500 cursor-not-allowed'
+        : 'bg-jade-500/15 border-jade-400/50 text-jade-300 hover:bg-jade-500/25',
       count: knownCards.length,
-      action: () => { onNavigate('learn'); markDone('practice'); },
-      cta: 'Praticar →',
+      action: () => { 
+        if (isPracticeLimitReached) {
+          alert('Você já atingiu o limite semanal de 3 práticas de frases.');
+          return;
+        }
+        onNavigate('learn'); 
+        markDone('practice'); 
+      },
+      cta: isPracticeLimitReached ? 'Limite Atingido' : 'Praticar →',
     },
     {
       key: 'grammar',
@@ -332,10 +386,10 @@ export default function Home({ onNavigate }) {
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-white font-display font-bold text-2xl">
-              Bom estudo! 漢字
+              {selectedDate.toDateString() === new Date().toDateString() ? 'Bom estudo! 漢字' : 'Revisando Dia Passado 📅'}
             </h1>
             <p className="text-ink-400 font-body text-sm mt-0.5">
-              {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+              {selectedDate.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
             </p>
           </div>
           <div className="flex items-center gap-2 px-4 py-2 bg-orange-500/10 border border-orange-500/20 rounded-xl">
@@ -347,10 +401,90 @@ export default function Home({ onNavigate }) {
           </div>
         </div>
 
+        {/* ── Agenda / Calendário de Estudos ── */}
+        <div className="bg-ink-900 border border-white/10 rounded-2xl p-5 shadow-lg">
+          <div className="flex justify-between items-center mb-3.5">
+            <h3 className="text-white font-bold text-sm uppercase tracking-wider font-mono text-ink-300">
+              Agenda de Estudos (Catch-up)
+            </h3>
+            {selectedDate.toDateString() !== new Date().toDateString() && (
+              <button
+                onClick={() => setSelectedDate(new Date())}
+                className="text-[10px] text-azure-400 hover:text-azure-300 border border-azure-400/30 hover:border-azure-400 bg-azure-500/5 hover:bg-azure-500/10 px-2 py-0.5 rounded font-mono transition"
+              >
+                Voltar para Hoje ➔
+              </button>
+            )}
+          </div>
+          <div className="grid grid-cols-7 gap-2.5">
+            {last7Days.map((day) => {
+              const dateStr = day.toDateString();
+              const isSelected = selectedDate.toDateString() === dateStr;
+              const isToday = today === dateStr;
+              const dayCompletions = getCompletionsForDate(day);
+              const isFullyDone = dayCompletions === 4;
+
+              const pillarsList = ['srs', 'lesson', 'practice', 'grammar'];
+              const dotColors = {
+                srs: 'bg-red-400',
+                lesson: 'bg-gold-400',
+                practice: 'bg-jade-400',
+                grammar: 'bg-azure-400',
+              };
+
+              return (
+                <button
+                  key={dateStr}
+                  onClick={() => setSelectedDate(day)}
+                  className={`flex flex-col items-center gap-2 py-2.5 px-1 rounded-xl border transition-all duration-200 ${
+                    isSelected
+                      ? 'border-azure-500 text-azure-300 bg-azure-500/10 shadow-[0_0_12px_rgba(59,130,246,0.15)] scale-105'
+                      : isToday
+                        ? 'border-white/20 text-white bg-white/5 hover:bg-white/10'
+                        : 'border-transparent text-ink-400 hover:bg-white/5 hover:text-white'
+                  }`}
+                >
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider opacity-85">
+                    {getDayName(day)}
+                  </span>
+                  
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-display text-sm font-bold border transition-all ${
+                    isFullyDone
+                      ? 'bg-jade-500/20 border-jade-500 text-jade-300'
+                      : isToday
+                        ? 'border-azure-400 text-azure-300 font-extrabold'
+                        : 'border-white/10 text-ink-300'
+                  }`}>
+                    {day.getDate()}
+                  </div>
+
+                  {/* 4 mini dots for the pillars */}
+                  <div className="flex gap-1 justify-center mt-0.5">
+                    {pillarsList.map((p) => {
+                      const completed = !!dailyDone[dateStr + ':' + p];
+                      return (
+                        <div
+                          key={p}
+                          title={`${p.toUpperCase()} ${completed ? 'Concluído' : 'Pendente'}`}
+                          className={`w-1.5 h-1.5 rounded-full transition-all ${
+                            completed ? dotColors[p] : 'bg-ink-700'
+                          }`}
+                        />
+                      );
+                    })}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* ── Progresso do Dia ── */}
         <div className="bg-ink-900 border border-white/8 rounded-2xl p-5">
           <div className="flex justify-between items-center mb-3">
-            <span className="text-ink-300 font-mono text-xs uppercase tracking-wider">Progresso de Hoje</span>
+            <span className="text-ink-300 font-mono text-xs uppercase tracking-wider">
+              {selectedDate.toDateString() === new Date().toDateString() ? 'Progresso de Hoje' : 'Progresso do Dia'}
+            </span>
             <span className="text-white font-bold font-mono text-sm">{doneCount}/4 pilares</span>
           </div>
           <div className="h-2 bg-ink-800 rounded-full overflow-hidden">
