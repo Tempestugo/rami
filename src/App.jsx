@@ -8,6 +8,7 @@ import PhraseSelectionBar from './components/PhraseSelectionBar';
 import LearningTrail from './features/LearningTrail';
 import LumiWarfare from './features/LumiWarfare';
 import SiegeMode from './features/SiegeMode';
+import CardCollection from './features/CardCollection.jsx';
 import FraseCook from './features/FraseCook';
 
 const MODES = {
@@ -16,12 +17,14 @@ const MODES = {
   STUDY:   'study',
   FRASE:   'frase',
   SIEGE:   'siege',
+  CARDS:   'cards', // Novo modo
   WARFARE: 'warfare',
 };
 
 const NAV = [
   { key: MODES.HOME,    label: 'Início',   icon: '🏮' },
   { key: MODES.LEARN,   label: 'Aprender', icon: '✍️' },
+  { key: MODES.CARDS,   label: 'Cartas',   icon: '🎴' }, // Novo item
   { key: MODES.STUDY,   label: 'Explorer', icon: '🕸️' },
   { key: MODES.FRASE,   label: 'Frases',   icon: '🀄' },
   { key: MODES.SIEGE,   label: 'Cerco',    icon: '🏯' },
@@ -37,6 +40,7 @@ export default function App() {
     [MODES.STUDY]:   ['Rami',        '漢字 Graph Explorer'],
     [MODES.FRASE]:   ['文 FraseCook', '🀄 Monte frases em chinês'],
     [MODES.SIEGE]:   ['Modo Cerco',  '🏯 Defenda desenhando'],
+    [MODES.CARDS]:   ['Minhas Cartas','🎴 Coleção de Ideogramas'],
     [MODES.WARFARE]: ['Lumi Warfare','⚔️ Campo de Batalha'],
   };
 
@@ -63,6 +67,7 @@ export default function App() {
               className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all border ${
                 mode === key
                   ? key === MODES.HOME    ? 'bg-vermillion-500/15 border-vermillion-500/60 text-vermillion-300'
+                  : key === MODES.CARDS   ? 'bg-jade-500/15 border-jade-400 text-jade-300'
                   : key === MODES.LEARN   ? 'bg-azure-500/15 border-azure-400 text-azure-300'
                   : key === MODES.STUDY   ? 'bg-white/10 border-white/30 text-white'
                   : key === MODES.FRASE   ? 'bg-gold-500/10 border-gold-400 text-gold-300'
@@ -98,6 +103,10 @@ export default function App() {
           <PhraseSelectionBar />
           <PhraseModal />
         </>
+      )}
+
+      {mode === MODES.CARDS && (
+        <CardCollection />
       )}
 
       {mode === MODES.FRASE && (

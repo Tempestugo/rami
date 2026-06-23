@@ -196,7 +196,10 @@ export default function Home({ onNavigate }) {
   const loadCards = useCallback(() => {
     setLoading(true);
     fetch('/api/cards/1')
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then(data => { if (data.success) setKnownCards(data.data); })
       .catch(console.error)
       .finally(() => setLoading(false));

@@ -6,7 +6,8 @@ let activePool = mysql.createPool({
   password: 'Rami2026!',
   database: 'u556180082_rami',
   waitForConnections: true,
-  connectionLimit: 10
+  connectionLimit: 10,
+  connectTimeout: 5000
 });
 
 // Testa conexão do pool principal e tenta o Hostinger remoto em caso de falha
@@ -25,7 +26,8 @@ export const dbReady = new Promise((resolve) => {
         password: 'Rami2026!',
         database: 'u556180082_rami',
         waitForConnections: true,
-        connectionLimit: 10
+        connectionLimit: 10,
+        connectTimeout: 5000
       });
       activePool.getConnection()
         .then(conn => {
