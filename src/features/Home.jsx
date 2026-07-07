@@ -557,24 +557,10 @@ export default function Home({ onNavigate }) {
   const knownSet = new Set(knownCards.map(c => c.char));
   const today = new Date().toDateString();
 
-  // Lógica de Compensação (Catch-Up): pega a data mais antiga incompleta
+  // Lógica de Data Efetiva: simplificada para usar sempre a data selecionada direta (sem redirecionar completudes)
   const getEffectiveDate = useCallback((key, dateObj) => {
-    const todayObj = new Date();
-    const isToday = dateObj.toDateString() === todayObj.toDateString();
-    if (!isToday) {
-      return dateObj;
-    }
-    // Sonda os últimos 30 dias de forma cronológica (do mais antigo ao mais recente)
-    for (let i = 30; i >= 1; i--) {
-      const d = new Date();
-      d.setDate(todayObj.getDate() - i);
-      const done = !!dailyDone[d.toDateString() + ':' + key];
-      if (!done) {
-        return d;
-      }
-    }
     return dateObj;
-  }, [dailyDone]);
+  }, []);
 
   // Lógica de índice sequencial baseado no total de completudes antes da data selecionada
   const getSequentialIndex = useCallback((key, dateObj) => {
