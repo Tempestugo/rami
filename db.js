@@ -14,12 +14,12 @@ let activePool = mysql.createPool({
 export const dbReady = new Promise((resolve) => {
   activePool.getConnection()
     .then(conn => {
-      console.log('🔌 Conectado ao banco de dados principal (Hostinger).');
+      console.log(' Conectado ao banco de dados principal (Hostinger).');
       conn.release();
       resolve(activePool);
     })
     .catch(err => {
-      console.log('⚠️ Conexão com localhost falhou, tentando Hostinger remoto...');
+      console.log('️ Conexão com localhost falhou, tentando Hostinger remoto...');
       activePool = mysql.createPool({
         host: 'srv2022.hstgr.io',
         user: 'u556180082_ramiSQL',
@@ -31,12 +31,12 @@ export const dbReady = new Promise((resolve) => {
       });
       activePool.getConnection()
         .then(conn => {
-          console.log('🔌 Conectado com sucesso ao banco de dados Hostinger remoto (srv2022.hstgr.io).');
+          console.log(' Conectado com sucesso ao banco de dados Hostinger remoto (srv2022.hstgr.io).');
           conn.release();
           resolve(activePool);
         })
         .catch(localErr => {
-          console.error('❌ Ambos os bancos de dados falharam:', localErr.message);
+          console.error(' Ambos os bancos de dados falharam:', localErr.message);
           resolve(activePool);
         });
     });

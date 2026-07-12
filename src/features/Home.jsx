@@ -69,7 +69,7 @@ function GrammarModal({ point, onClose, isCompleted, onComplete }) {
           <button
             onClick={onClose}
             className="text-ink-400 hover:text-white transition text-xl leading-none mt-0.5 font-bold"
-          >✕</button>
+          ></button>
         </div>
 
         {/* Scrollable Content Wrapper */}
@@ -125,7 +125,7 @@ function GrammarModal({ point, onClose, isCompleted, onComplete }) {
           <div>
             {isCompleted ? (
               <span className="px-3 py-1.5 rounded-lg bg-jade-500/10 border border-jade-500/30 text-jade-400 text-xs font-bold font-mono">
-                ✓ Concluído
+                 Concluído
               </span>
             ) : (
               <button
@@ -135,7 +135,7 @@ function GrammarModal({ point, onClose, isCompleted, onComplete }) {
                 }}
                 className="px-4 py-1.5 rounded-lg bg-azure-500 hover:bg-azure-600 text-white text-xs font-bold font-mono transition border border-azure-400 shadow-md"
               >
-                Concluir Leitura ✓
+                Concluir Leitura 
               </button>
             )}
           </div>
@@ -315,7 +315,7 @@ function LessonModal({ char: defaultChar, knownChars, onLearn, onComplete, onClo
               {selectedChar ? 'Desenhe o Ideograma' : 'Selecione seu Objetivo'}
             </h2>
           </div>
-          <button onClick={onClose} className="text-ink-400 hover:text-white transition text-xl leading-none mt-0.5 font-bold">✕</button>
+          <button onClick={onClose} className="text-ink-400 hover:text-white transition text-xl leading-none mt-0.5 font-bold"></button>
         </div>
 
         {/* Conteúdo Principal */}
@@ -342,7 +342,7 @@ function LessonModal({ char: defaultChar, knownChars, onLearn, onComplete, onClo
                     onClick={() => setQuery('')}
                     className="absolute right-4 top-1/2 -translate-y-1/2 text-ink-500 hover:text-white font-bold"
                   >
-                    ✕
+                    
                   </button>
                 )}
               </div>
@@ -430,13 +430,13 @@ function LessonModal({ char: defaultChar, knownChars, onLearn, onComplete, onClo
                     className="absolute -bottom-2 -right-2 w-8 h-8 bg-ink-800 border border-white/10 hover:border-white/30 text-ink-300 hover:text-white rounded-full flex items-center justify-center text-xs transition shadow-md animate-pulse"
                     title="Animar Ordem dos Traços"
                   >
-                    🎬
+                    
                   </button>
                 </div>
 
                 {success && (
                   <div className="text-center flex flex-col items-center gap-1.5 bg-jade-950/20 border border-jade-500/20 rounded-xl px-6 py-2.5 max-w-sm">
-                    <span className="text-jade-400 font-bold font-display text-xs">✨ Ideograma Confirmado!</span>
+                    <span className="text-jade-400 font-bold font-display text-xs"> Ideograma Confirmado!</span>
                     <span className="text-4xl font-display font-bold text-white">{selectedChar}</span>
                     {relatedGrammar && (
                       <button
@@ -444,7 +444,7 @@ function LessonModal({ char: defaultChar, knownChars, onLearn, onComplete, onClo
                         className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-azure-500/10 border border-azure-400/30 text-azure-300 hover:bg-azure-500/25 transition cursor-pointer mt-1"
                         title="Ver gramática relacionada"
                       >
-                        📖 Gramática: {relatedGrammar.title.slice(0, 30)}...
+                         Gramática: {relatedGrammar.title.slice(0, 30)}...
                       </button>
                     )}
                   </div>
@@ -504,7 +504,7 @@ function LessonModal({ char: defaultChar, knownChars, onLearn, onComplete, onClo
               }}
               className="px-5 py-2 rounded-xl bg-gold-500 hover:bg-gold-600 text-ink-950 font-bold text-xs font-mono transition shadow-lg shadow-gold-500/10 border border-gold-400"
             >
-              Concluir Lição e Salvar ➔
+              Concluir Lição e Salvar 
             </button>
           ) : (
             <button
@@ -708,23 +708,14 @@ export default function Home({ onNavigate }) {
     finally { setAddingChar(null); }
   };
 
-  const getWeeklyPracticeCount = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const week = Math.ceil(((now - new Date(year,0,1)) / 86400000 + new Date(year,0,1).getDay()+1)/7);
-    const weekKey = `practice_week_${year}_W${week}`;
-    return parseInt(localStorage.getItem(weekKey) || '0', 10);
-  };
-  const weeklyPracticeCount = getWeeklyPracticeCount();
-  const isPracticeLimitReached = weeklyPracticeCount >= 3;
 
   // ─── Render ───────────────────────────────────────────────────────────────
   const pillars = [
     {
       key: 'srs',
-      icon: '🔴',
+      icon: '',
       label: 'Revisão SRS',
-      sublabel: srsReviewCount > 0 ? `${srsReviewCount} cartas para revisar` : 'Tudo em dia! ✓',
+      sublabel: srsReviewCount > 0 ? `${srsReviewCount} cartas para revisar` : 'Tudo em dia! ',
       desc: 'Revise os caracteres que você já conhece antes que os esqueça.',
       color: 'border-red-500/25 hover:border-red-500/50',
       accent: 'text-red-400',
@@ -736,13 +727,13 @@ export default function Home({ onNavigate }) {
     },
     {
       key: 'lesson',
-      icon: '🟡',
+      icon: '',
       label: 'Lição do Dia',
       sublabel: isDone('lesson')
         ? `Aprendido: '${getDailyLessonChar(selectedDate, knownCards)}'`
         : lessonChar
           ? `HSK ${lessonHskLevel} • Escrever '${lessonChar}'`
-          : 'Tudo aprendido! ✓',
+          : 'Tudo aprendido! ',
       desc: lessonChar
         ? 'Aprenda um novo ideograma do seu nível digitando e dominando seus traços.'
         : 'Você já aprendeu todos os ideogramas disponíveis por enquanto.',
@@ -754,36 +745,28 @@ export default function Home({ onNavigate }) {
         : 'bg-gold-500/15 border-gold-400/50 text-gold-300 hover:bg-gold-500/25',
       count: lessonChar ? 1 : 0,
       action: () => { if (lessonChar) setLessonModal(true); },
-      cta: lessonChar ? 'Iniciar Desafio →' : 'Concluído ✓',
+      cta: lessonChar ? 'Iniciar Desafio →' : 'Concluído ',
     },
     {
       key: 'practice',
-      icon: '🟢',
+      icon: '',
       label: 'Praticar Frases',
-      sublabel: isPracticeLimitReached ? 'Limite semanal atingido (3/3)' : `Praticado ${weeklyPracticeCount}/3 vezes esta semana`,
-      desc: isPracticeLimitReached 
-        ? 'Você atingiu o limite semanal de 3 sessões de prática de frases.' 
-        : 'Pratique escrita e leitura com frases reais do nível do seu vocabulário.',
+      sublabel: 'Prática diária disponível',
+      desc: 'Pratique escrita e leitura com frases reais do nível do seu vocabulário.',
       color: 'border-jade-500/25 hover:border-jade-500/50',
       accent: 'text-jade-400',
       bg: 'bg-jade-500/5',
-      btnColor: isPracticeLimitReached 
-        ? 'bg-ink-800 border-white/10 text-ink-500 cursor-not-allowed'
-        : 'bg-jade-500/15 border-jade-400/50 text-jade-300 hover:bg-jade-500/25',
+      btnColor: 'bg-jade-500/15 border-jade-400/50 text-jade-300 hover:bg-jade-500/25',
       count: knownCards.length,
       action: () => { 
-        if (isPracticeLimitReached) {
-          alert('Você já atingiu o limite semanal de 3 práticas de frases.');
-          return;
-        }
         onNavigate('learn'); 
         markDone('practice'); 
       },
-      cta: isPracticeLimitReached ? 'Limite Atingido' : 'Praticar →',
+      cta: 'Praticar →',
     },
     {
       key: 'grammar',
-      icon: '🔵',
+      icon: '',
       label: 'Gramática',
       sublabel: isDone('grammar') ? `Concluído: "${grammarPoint.title}"` : `Regra: "${grammarPoint.title}"`,
       desc: `Estrutura: ${grammarPoint.structure}`,
@@ -805,14 +788,14 @@ export default function Home({ onNavigate }) {
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-white font-display font-bold text-2xl">
-              {selectedDate.toDateString() === new Date().toDateString() ? 'Bom estudo! 漢字' : 'Revisando Dia Passado 📅'}
+              {selectedDate.toDateString() === new Date().toDateString() ? 'Bom estudo! 漢字' : 'Revisando Dia Passado '}
             </h1>
             <p className="text-ink-400 font-body text-sm mt-0.5">
               {selectedDate.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
             </p>
           </div>
           <div className="flex items-center gap-2 px-4 py-2 bg-orange-500/10 border border-orange-500/20 rounded-xl">
-            <span className="text-lg">🔥</span>
+            <span className="text-lg"></span>
             <div className="text-right">
               <span className="text-orange-300 font-bold font-display text-lg">{streak}</span>
               <p className="text-orange-400/60 font-mono text-[9px] uppercase -mt-0.5">dias seguidos</p>
@@ -847,7 +830,7 @@ export default function Home({ onNavigate }) {
                 onClick={() => setSelectedDate(new Date())}
                 className="text-[10px] text-azure-400 hover:text-azure-300 border border-azure-400/30 hover:border-azure-400 bg-azure-500/5 hover:bg-azure-500/10 px-2 py-0.5 rounded font-mono transition"
               >
-                Voltar para Hoje ➔
+                Voltar para Hoje 
               </button>
             )}
           </div>
@@ -962,7 +945,7 @@ export default function Home({ onNavigate }) {
                   key: 'srs',
                   label: 'Revisão SRS',
                   desc: srsReviewCount > 0 ? `Revisar ${srsReviewCount} cartas pendentes` : 'Tudo revisado!',
-                  icon: '🔴'
+                  icon: ''
                 },
                 {
                   key: 'lesson',
@@ -972,13 +955,13 @@ export default function Home({ onNavigate }) {
                     : lessonChar
                       ? `Escrever o caractere '${lessonChar}'`
                       : 'Nenhum ideograma pendente',
-                  icon: '🟡'
+                  icon: ''
                 },
                 {
                   key: 'practice',
                   label: 'Prática de Frases',
-                  desc: isPracticeLimitReached ? 'Limite semanal atingido (3/3)' : `Praticar frases (${weeklyPracticeCount}/3)`,
-                  icon: '🟢'
+                  desc: 'Praticar frases',
+                  icon: ''
                 },
                 {
                   key: 'grammar',
@@ -986,7 +969,7 @@ export default function Home({ onNavigate }) {
                   desc: isDoneForDate('grammar', selectedDate)
                     ? `Lido: "${grammarPoint.title}"`
                     : `Ler a regra: "${grammarPoint.title}"`,
-                  icon: '🔵'
+                  icon: ''
                 }
               ].map(item => {
                 const completed = isDoneForDate(item.key, selectedDate);
@@ -999,7 +982,7 @@ export default function Home({ onNavigate }) {
                         : 'border-white/5 bg-black/10 text-ink-300'
                     }`}
                   >
-                    <span className="text-base shrink-0">{completed ? '✅' : item.icon}</span>
+                    <span className="text-base shrink-0">{completed ? '' : item.icon}</span>
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-[10px] font-mono uppercase tracking-wider text-ink-400">{item.label}</p>
                       <p className="text-[11px] text-ink-200 truncate mt-0.5" title={item.desc}>{item.desc}</p>
@@ -1013,9 +996,9 @@ export default function Home({ onNavigate }) {
           {/* Estatísticas rápidas */}
           <div className="grid grid-cols-3 gap-3 mt-4 border-t border-white/5 pt-4">
             {[
-              { label: 'Coleção', value: loading ? '…' : knownCards.length, sub: 'ideogramas', icon: '📚' },
-              { label: 'Nível HSK', value: `HSK ${hskLevel}`, sub: 'estimado', icon: '🏮' },
-              { label: 'Para Revisar', value: loading ? '…' : srsReviewCount, sub: 'cartas SRS', icon: '♻️' },
+              { label: 'Coleção', value: loading ? '…' : knownCards.length, sub: 'ideogramas', icon: '' },
+              { label: 'Nível HSK', value: `HSK ${hskLevel}`, sub: 'estimado', icon: '' },
+              { label: 'Para Revisar', value: loading ? '…' : srsReviewCount, sub: 'cartas SRS', icon: '️' },
             ].map(stat => (
               <div key={stat.label} className="bg-black/30 rounded-xl p-3 border border-white/5 text-center">
                 <span className="text-lg">{stat.icon}</span>
@@ -1041,7 +1024,7 @@ export default function Home({ onNavigate }) {
                 >
                   {isDone(p.key) && (
                     <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-jade-500/20 border border-jade-500/40 flex items-center justify-center">
-                      <span className="text-jade-400 text-xs">✓</span>
+                      <span className="text-jade-400 text-xs"></span>
                     </div>
                   )}
                   <div className="flex items-center gap-2">
@@ -1090,7 +1073,7 @@ export default function Home({ onNavigate }) {
                 </p>
               )}
             </div>
-            <span className="text-2xl group-hover:scale-110 transition-transform">🔵</span>
+            <span className="text-2xl group-hover:scale-110 transition-transform"></span>
           </div>
         </div>
 

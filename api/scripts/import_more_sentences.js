@@ -42,7 +42,7 @@ function cleanString(str) {
 }
 
 async function run() {
-  console.log(`🚀 Loading database state...`);
+  console.log(` Loading database state...`);
   
   // 1. Build HSK map from hanziData
   const hanziHskMap = new Map();
@@ -59,22 +59,22 @@ async function run() {
     hanziHskMap.set(char, lvl);
   }
   
-  console.log(`   ✓ Loaded HSK map for ${hanziHskMap.size} characters.`);
+  console.log(`    Loaded HSK map for ${hanziHskMap.size} characters.`);
 
   const existingPhrases = new Set(originalPhrases.map(p => p.phrase));
-  console.log(`   ✓ Current phraseData has ${originalPhrases.length} phrases.`);
+  console.log(`    Current phraseData has ${originalPhrases.length} phrases.`);
 
-  console.log(`📥 Downloading Tatoeba sentences from:\n   ${SOURCE_URL}...`);
+  console.log(` Downloading Tatoeba sentences from:\n   ${SOURCE_URL}...`);
   let tsvContent;
   try {
     tsvContent = await downloadFile(SOURCE_URL);
-    console.log(`   ✓ Downloaded ${Math.round(tsvContent.length / 1024 / 1024 * 100) / 100} MB of TSV data.`);
+    console.log(`    Downloaded ${Math.round(tsvContent.length / 1024 / 1024 * 100) / 100} MB of TSV data.`);
   } catch (err) {
-    console.error(`❌ Error downloading TSV:`, err.message);
+    console.error(` Error downloading TSV:`, err.message);
     process.exit(1);
   }
 
-  console.log(`⚙️ Processing sentences...`);
+  console.log(`️ Processing sentences...`);
   const lines = tsvContent.split('\n');
   const candidates = [];
   let skippedDuplicates = 0;
@@ -141,14 +141,14 @@ async function run() {
     });
   }
 
-  console.log(`📊 Statistics of parsed sentences:`);
+  console.log(` Statistics of parsed sentences:`);
   console.log(`   - Duplicates skipped: ${skippedDuplicates}`);
   console.log(`   - Unknown characters skipped: ${skippedUnknownChars}`);
   console.log(`   - Invalid length skipped (<2 or >15 chars): ${skippedInvalidLength}`);
   console.log(`   - Valid candidates found: ${candidates.length}`);
 
   // Shuffle candidates to get a random distribution across HSK levels
-  console.log(`🔀 Shuffling and selecting sentences to merge...`);
+  console.log(` Shuffling and selecting sentences to merge...`);
   const shuffledCandidates = candidates.sort(() => 0.5 - Math.random());
 
   // Cap total phrases to 15,000
@@ -156,7 +156,7 @@ async function run() {
   const needToAdd = Math.max(0, maxTotal - originalPhrases.length);
   const selectedCandidates = shuffledCandidates.slice(0, needToAdd);
 
-  console.log(`➕ Merging ${selectedCandidates.length} new phrases into existing bank (Total cap: ${maxTotal})...`);
+  console.log(` Merging ${selectedCandidates.length} new phrases into existing bank (Total cap: ${maxTotal})...`);
   const mergedPhrases = [...originalPhrases, ...selectedCandidates];
 
   // Group or sort merged phrases by HSK level (ascending) and then by phrase length
@@ -170,13 +170,13 @@ async function run() {
     hskDistribution[p.hsk] = (hskDistribution[p.hsk] || 0) + 1;
   });
 
-  console.log(`📈 HSK Distribution of the final phrase bank:`);
+  console.log(` HSK Distribution of the final phrase bank:`);
   Object.keys(hskDistribution).forEach(lvl => {
     console.log(`   - HSK ${lvl}: ${hskDistribution[lvl]} phrases`);
   });
 
   // Write file
-  console.log(`✍️ Saving to ${TARGET_FILE}...`);
+  console.log(`️ Saving to ${TARGET_FILE}...`);
   const fileContent = `/**
  * phraseData.js — Curated phrase bank for the Algorithmic Phrase Builder.
  * Atualizado automaticamente via script de importação de frases.
@@ -187,9 +187,9 @@ export const phraseData = ${JSON.stringify(mergedPhrases, null, 2)};
 
   try {
     fs.writeFileSync(TARGET_FILE, fileContent, 'utf-8');
-    console.log(`🎉 Successfully updated phraseData.js with ${mergedPhrases.length} total phrases!`);
+    console.log(` Successfully updated phraseData.js with ${mergedPhrases.length} total phrases!`);
   } catch (err) {
-    console.error(`❌ Error writing phraseData.js:`, err.message);
+    console.error(` Error writing phraseData.js:`, err.message);
     process.exit(1);
   }
 }

@@ -24,28 +24,28 @@ const MODES = {
 };
 
 const NAV = [
-  { key: MODES.HOME,    label: 'Início',   icon: '🏮' },
-  { key: MODES.LEARN,   label: 'Aprender', icon: '✍️' },
-  { key: MODES.CARDS,   label: 'Cartas',   icon: '🎴' }, // Novo item
-  { key: MODES.STUDY,   label: 'Explorer', icon: '🕸️' },
+  { key: MODES.HOME,    label: 'Início',   icon: '' },
+  { key: MODES.LEARN,   label: 'Aprender', icon: '️' },
+  { key: MODES.CARDS,   label: 'Cartas',   icon: '' }, // Novo item
+  { key: MODES.STUDY,   label: 'Explorer', icon: '️' },
   { key: MODES.FRASE,   label: 'Frases',   icon: '🀄' },
-  { key: MODES.SIEGE,   label: 'Cerco',    icon: '🏯' },
-  { key: MODES.WARFARE, label: 'Arena',    icon: '⚔️' },
-  { key: MODES.USER,    label: 'Usuário',  icon: '👤' },
+  { key: MODES.SIEGE,   label: 'Cerco',    icon: '' },
+  { key: MODES.WARFARE, label: 'Arena',    icon: '️' },
+  { key: MODES.USER,    label: 'Usuário',  icon: '' },
 ];
 
 export default function App() {
   const [mode, setMode] = useState(MODES.HOME);
 
   const headerTitle = {
-    [MODES.HOME]:    ['Rami',        '🏮 Painel de Estudos'],
-    [MODES.LEARN]:   ['Aprender',    '✍️ Prática com Frases'],
+    [MODES.HOME]:    ['Rami',        ' Painel de Estudos'],
+    [MODES.LEARN]:   ['Aprender',    '️ Prática com Frases'],
     [MODES.STUDY]:   ['Rami',        '漢字 Graph Explorer'],
     [MODES.FRASE]:   ['文 FraseCook', '🀄 Monte frases em chinês'],
-    [MODES.SIEGE]:   ['Modo Cerco',  '🏯 Defenda desenhando'],
-    [MODES.CARDS]:   ['Minhas Cartas','🎴 Coleção de Ideogramas'],
-    [MODES.WARFARE]: ['Lumi Warfare','⚔️ Campo de Batalha'],
-    [MODES.USER]:    ['Usuário',     '👤 Perfil e Configurações'],
+    [MODES.SIEGE]:   ['Modo Cerco',  ' Defenda desenhando'],
+    [MODES.CARDS]:   ['Minhas Cartas',' Coleção de Ideogramas'],
+    [MODES.WARFARE]: ['Lumi Warfare','️ Campo de Batalha'],
+    [MODES.USER]:    ['Usuário',     ' Perfil e Configurações'],
   };
 
   const [title, subtitle] = headerTitle[mode] || ['Rami', ''];

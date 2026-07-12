@@ -134,7 +134,7 @@ export default function UserProfile() {
         {/* Header de Perfil */}
         <div className="flex items-center gap-4 bg-ink-900 border border-white/10 rounded-2xl p-6 shadow-lg">
           <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-vermillion-500 to-orange-400 flex items-center justify-center text-3xl shadow-md">
-            👤
+            
           </div>
           <div>
             <h1 className="text-white font-display font-bold text-2xl">Perfil do Estudante</h1>
@@ -154,7 +154,7 @@ export default function UserProfile() {
                 <span className="text-[10px] text-jade-400 font-mono uppercase tracking-widest">Vocabulário</span>
                 <h3 className="text-white font-display font-bold text-lg mt-0.5">Caracteres HSK 1</h3>
               </div>
-              <span className="text-2xl">🏮</span>
+              <span className="text-2xl"></span>
             </div>
             
             <div className="mt-2">
@@ -181,7 +181,7 @@ export default function UserProfile() {
                 <span className="text-[10px] text-azure-400 font-mono uppercase tracking-widest">Gramática Wiki</span>
                 <h3 className="text-white font-display font-bold text-lg mt-0.5">Pontos de Gramática</h3>
               </div>
-              <span className="text-2xl">📚</span>
+              <span className="text-2xl"></span>
             </div>
 
             <div className="mt-2">
@@ -291,7 +291,7 @@ export default function UserProfile() {
         {/* Estudos de Contexto (Coming Soon) */}
         <div className="bg-ink-900 border border-white/5 rounded-2xl p-6 shadow-md relative overflow-hidden select-none opacity-60 border-dashed">
           <div className="absolute top-4 right-4 text-xs font-mono bg-white/5 border border-white/10 text-ink-400 px-2 py-0.5 rounded flex items-center gap-1">
-            <span>🔒</span> Em breve
+            <span></span> Em breve
           </div>
           
           <h3 className="text-white font-bold text-base font-display flex items-center gap-2 mb-2">

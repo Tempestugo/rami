@@ -17,7 +17,7 @@
 
 set -e # Exit immediately if a command exits with a non-zero status.
 
-echo "🚀 Starting deployment..."
+echo " Starting deployment..."
 
 # --- Environment Setup ---
 echo "   - Setting up Node.js environment..."
@@ -46,4 +46,4 @@ npm run build
 echo "   - Reloading application with PM2 for zero-downtime..."
 pm2 reload rami-app || pm2 start server.js --name "rami-app"
 
-echo "✅ Deployment complete!"
+echo " Deployment complete!"

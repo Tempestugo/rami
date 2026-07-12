@@ -359,7 +359,7 @@ app.get('*', (req, res) => {
 async function initializeDatabase() {
   await dbReady;
   try {
-    console.log('🔄 Inicializando tabelas do banco de dados...');
+    console.log(' Inicializando tabelas do banco de dados...');
     await pool.query(`
       CREATE TABLE IF NOT EXISTS progress (
         id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -385,7 +385,7 @@ async function initializeDatabase() {
     // Migração de tabela existente
     try {
       await pool.query(`ALTER TABLE user_cards ADD COLUMN practice_count TINYINT NOT NULL DEFAULT 0`);
-      console.log('✅ Coluna practice_count adicionada com sucesso a user_cards.');
+      console.log(' Coluna practice_count adicionada com sucesso a user_cards.');
     } catch (e) {
       // Ignora erro se a coluna já existe
     }
@@ -399,9 +399,9 @@ async function initializeDatabase() {
         UNIQUE KEY uq_user_deck (user_id, slot)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
-    console.log('✅ Tabelas do banco de dados inicializadas com sucesso.');
+    console.log(' Tabelas do banco de dados inicializadas com sucesso.');
   } catch (err) {
-    console.error('❌ Erro ao inicializar o banco de dados:', err.message);
+    console.error(' Erro ao inicializar o banco de dados:', err.message);
   }
 }
 

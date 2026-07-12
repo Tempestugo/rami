@@ -65,7 +65,7 @@ function MeaningQuiz({ exercise, onSuccess }) {
 function LessonComplete({ lesson, xpEarned, onContinue }) {
   return (
     <div className="lesson-complete">
-      <h2>🎉 Lição concluída!</h2>
+      <h2> Lição concluída!</h2>
       <p className="complete-sentence">{lesson.hanzi_full}</p>
       <p className="complete-pinyin">{lesson.pinyin_full}</p>
       <p className="complete-translation">{lesson.translation_pt}</p>
@@ -185,7 +185,7 @@ export default function LessonManager({ sentenceId, onComplete }) {
       <div className="lesson-hud">
         <span className="hud-sentence">{lesson.hanzi_full}</span>
         <span className="hud-progress">{progress}</span>
-        <span className="hud-xp">⚡ {xpEarned} XP</span>
+        <span className="hud-xp"> {xpEarned} XP</span>
       </div>
 
       {/* Exercício atual */}

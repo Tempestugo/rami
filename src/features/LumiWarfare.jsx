@@ -241,7 +241,7 @@ const LumiWarfare = ({ deck = DEFAULT_DECK }) => {
             setTimeout(() => { en.speedMulti = 1; }, 2500);
           }
         });
-        spawnText(primaryTarget.x, primaryTarget.y - 20, '❄ SLOW', '#3b9ddd');
+        spawnText(primaryTarget.x, primaryTarget.y - 20, ' SLOW', '#3b9ddd');
       }
 
       if (card.family === '火' && scale.secondaryEffect) {
@@ -252,14 +252,14 @@ const LumiWarfare = ({ deck = DEFAULT_DECK }) => {
             const splash = Math.floor(card.baseDamage * 0.4);
             en.hp -= splash;
             spawnParticles(en.x, en.y, '#e67e22', 6);
-            spawnText(en.x, en.y, `-${splash} 🔥`, '#e67e22');
+            spawnText(en.x, en.y, `-${splash} `, '#e67e22');
           }
         });
       }
 
       if (card.family === '土' && scale.secondaryEffect) {
         primaryTarget.stunFrames = 90;
-        spawnText(primaryTarget.x, primaryTarget.y - 20, '⚡ STUN', '#c0834e');
+        spawnText(primaryTarget.x, primaryTarget.y - 20, ' STUN', '#c0834e');
       }
 
       if (card.family === '口' && scale.secondaryEffect) {
@@ -268,7 +268,7 @@ const LumiWarfare = ({ deck = DEFAULT_DECK }) => {
         const dist = Math.hypot(dx, dy) || 1;
         primaryTarget.x += (dx / dist) * 90;
         primaryTarget.y += (dy / dist) * 90;
-        spawnText(primaryTarget.x, primaryTarget.y, '💨 PUSH', '#9b59b6');
+        spawnText(primaryTarget.x, primaryTarget.y, ' PUSH', '#9b59b6');
       }
 
       if (card.family === '木') {
@@ -277,7 +277,7 @@ const LumiWarfare = ({ deck = DEFAULT_DECK }) => {
           gameState.current.castleMaxHp,
           gameState.current.castleHp + 8
         );
-        spawnText(80, canvas.height / 2, '+8 🛡', '#27ae60');
+        spawnText(80, canvas.height / 2, '+8 ', '#27ae60');
       }
 
       // playerMutations (buff 人)
@@ -489,7 +489,7 @@ const LumiWarfare = ({ deck = DEFAULT_DECK }) => {
       ctx.font = 'bold 28px serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('🏯', castleX, castleY + 60);
+      ctx.fillText('', castleX, castleY + 60);
 
       drawHPBar(ctx, castleX, castleY - 14, s.castleHp, s.castleMaxHp, 80);
 
@@ -601,7 +601,7 @@ const LumiWarfare = ({ deck = DEFAULT_DECK }) => {
         // Ícone de stun
         if (t.stunFrames > 0) {
           ctx.font = '14px serif';
-          ctx.fillText('⚡', tx + t.radius, ty - t.radius);
+          ctx.fillText('', tx + t.radius, ty - t.radius);
         }
       });
 
@@ -759,7 +759,7 @@ const LumiWarfare = ({ deck = DEFAULT_DECK }) => {
       {/* HUD título */}
       <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none text-center">
         <h3 className="text-lg font-bold tracking-widest text-red-400 font-mono drop-shadow">
-          ⚔ LUMI WARFARE
+           LUMI WARFARE
         </h3>
         <p className="text-xs text-white/30 mt-0.5 uppercase tracking-wider">
           arraste tropas · poderes automáticos no beat

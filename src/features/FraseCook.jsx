@@ -96,8 +96,8 @@ function generateRound(hskLevel, context) {
 // ─── Componente ──────────────────────────────────────────────────────────────
 
 const CONTEXTS = [
-  { key: null,       label: '全部',   emoji: '✦' },
-  { key: 'cozinha',  label: '厨房',   emoji: '🍚' },
+  { key: null,       label: '全部',   emoji: '' },
+  { key: 'cozinha',  label: '厨房',   emoji: '' },
   { key: 'natureza', label: '自然',   emoji: '山' },
   { key: 'pessoas',  label: '人物',   emoji: '人' },
   { key: 'estudo',   label: '学习',   emoji: '书' },
@@ -333,8 +333,8 @@ export default function FraseCook({ initialHsk = 1, initialContext = null }) {
           {/* Botões de Confirmação */}
           {selected.length > 0 && (
             <div className="flex gap-1.5 shrink-0">
-              <button onClick={submitWord} className="w-10 h-10 rounded-lg bg-jade-500/20 text-jade-400 border border-jade-500/30 hover:bg-jade-500/30 flex items-center justify-center font-bold shadow-lg">✓</button>
-              <button onClick={() => setSelected([])} className="w-10 h-10 rounded-lg bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 flex items-center justify-center font-bold shadow-lg">✕</button>
+              <button onClick={submitWord} className="w-10 h-10 rounded-lg bg-jade-500/20 text-jade-400 border border-jade-500/30 hover:bg-jade-500/30 flex items-center justify-center font-bold shadow-lg"></button>
+              <button onClick={() => setSelected([])} className="w-10 h-10 rounded-lg bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 flex items-center justify-center font-bold shadow-lg"></button>
             </div>
           )}
         </div>
@@ -389,7 +389,7 @@ export default function FraseCook({ initialHsk = 1, initialContext = null }) {
                 : 'text-ink-600 border-white/05 cursor-default'
             }`}
           >
-            💡 dica ({hints})
+             dica ({hints})
           </button>
         </div>
       </div>

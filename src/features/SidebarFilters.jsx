@@ -2,22 +2,22 @@ import React, { useState } from 'react';
 import useStore from '../store/useStore';
 
 const MODES = [
-  { value: 'evo', label: 'Evolução', sub: 'Radical → Palavras Derivadas', icon: '🌿' },
-  { value: 'dag', label: 'Analítico', sub: 'Palavra → Radicais Componentes', icon: '🔬' },
-  { value: 'sim', label: 'Similaridade', sub: 'Forma Visual (+1 Traço)', icon: '👁️' },
+  { value: 'evo', label: 'Evolução', sub: 'Radical → Palavras Derivadas', icon: '' },
+  { value: 'dag', label: 'Analítico', sub: 'Palavra → Radicais Componentes', icon: '' },
+  { value: 'sim', label: 'Similaridade', sub: 'Forma Visual (+1 Traço)', icon: '️' },
 ];
 
 const CONTEXTS = [
-  { value: 'cozinha',  label: 'Cozinha',   icon: '🍳' },
-  { value: 'natureza', label: 'Natureza',  icon: '🌲' },
-  { value: 'pessoa',   label: 'Pessoa',    icon: '👤' },
-  { value: 'tempo',    label: 'Tempo',     icon: '⏳' },
-  { value: 'clima',    label: 'Clima',     icon: '🌧️' },
-  { value: 'numero',   label: 'Número',    icon: '🔢' },
-  { value: 'familia',  label: 'Família',   icon: '👨‍👩‍👧' },
-  { value: 'acao',     label: 'Ação',      icon: '⚡' },
-  { value: 'lugar',    label: 'Lugar',     icon: '📍' },
-  { value: 'estudo',   label: 'Estudo',    icon: '📖' },
+  { value: 'cozinha',  label: 'Cozinha',   icon: '' },
+  { value: 'natureza', label: 'Natureza',  icon: '' },
+  { value: 'pessoa',   label: 'Pessoa',    icon: '' },
+  { value: 'tempo',    label: 'Tempo',     icon: '' },
+  { value: 'clima',    label: 'Clima',     icon: '️' },
+  { value: 'numero',   label: 'Número',    icon: '' },
+  { value: 'familia',  label: 'Família',   icon: '‍‍' },
+  { value: 'acao',     label: 'Ação',      icon: '' },
+  { value: 'lugar',    label: 'Lugar',     icon: '' },
+  { value: 'estudo',   label: 'Estudo',    icon: '' },
 ];
 
 const HSK_COLORS = {

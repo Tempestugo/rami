@@ -247,7 +247,7 @@ export default function DetailsPanel() {
                          bg-vermillion-500/10 border border-vermillion-500/30 text-vermillion-400
                          hover:bg-vermillion-500/20 hover:border-vermillion-500/50 transition-all duration-150"
             >
-              ➕ Adicionar aos Conhecidos
+               Adicionar aos Conhecidos
             </button>
           ) : (
             <div className="flex flex-col gap-2.5">

@@ -99,8 +99,28 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
 
   useEffect(() => {
     ensureZpix();
-    fetch(`/api/game/siege?hsk=${hskLevel}&count=${waveSize}`)
-      .then(r => r.json()).then(({ data }) => spawnEnemies(data))
+    fetch('/api/cards/1') // Hardcoded user_id 1
+      .then(r => r.json())
+      .then(data => {
+        if (data.success && data.data && data.data.length > 0) {
+          const knownCards = data.data;
+          // Embaralha e pega a quantidade da wave
+          const shuffled = knownCards.sort(() => 0.5 - Math.random());
+          const selected = shuffled.slice(0, waveSize);
+          
+          const enemiesData = selected.map((c, i) => ({
+            id: `f_${i}_${c.char}`, 
+            char: c.char, 
+            pinyin: c.pinyin || '?', 
+            meaning: c.meaning_pt || c.meaning || '?', 
+            hsk: c.hsk_level || 1,
+            speed: 0.5 + Math.random() * 0.3,
+          }));
+          spawnEnemies(enemiesData);
+        } else {
+          throw new Error('Sem cartas conhecidas');
+        }
+      })
       .catch(() => {
         const chars = ['水','火','人','口','日','山','木','土','金','月'].slice(0, waveSize);
         spawnEnemies(chars.map((char, i) => ({
@@ -268,7 +288,7 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
                   size: Math.random() * 5 + 2,
                 });
               }
-              state.floatingTexts.push({ x: en.x, y: en.y - 30, text: `✓ ${en.char}`, color: '#4ade80', life: 1.5, vy: 1.8 });
+              state.floatingTexts.push({ x: en.x, y: en.y - 30, text: ` ${en.char}`, color: '#4ade80', life: 1.5, vy: 1.8 });
               
               setTimeout(() => {
                 state.enemies = state.enemies.filter(e => e.id !== en.id);
@@ -284,7 +304,7 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
         if (en.hitTimer > 0 && --en.hitTimer === 0) en.spriteState = 'idle';
         if (en.x < -OFUDA_W) {
           en.dying = true;
-          state.floatingTexts.push({ x: 80, y: canvas.height / 2, text: '⚠ Passou!', color: '#ef4444', life: 1.5, vy: 0.8 });
+          state.floatingTexts.push({ x: 80, y: canvas.height / 2, text: ' Passou!', color: '#ef4444', life: 1.5, vy: 0.8 });
           setTimeout(() => { state.enemies = state.enemies.filter(e => e.id !== en.id); }, 400);
         }
       });
@@ -299,7 +319,7 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
       ctx.moveTo(60, 0); ctx.lineTo(60, canvas.height); ctx.stroke();
       ctx.setLineDash([]); ctx.restore();
       ctx.font = '20px serif'; ctx.textAlign = 'center';
-      ctx.fillText('🏯', 30, canvas.height / 2);
+      ctx.fillText('', 30, canvas.height / 2);
 
       // DRAW ofudas
       state.enemies.forEach(en => {
@@ -378,7 +398,7 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
 
       <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
         <div className="flex items-center gap-3 bg-black/60 backdrop-blur-sm rounded-full px-4 py-1.5 border border-white/10">
-          <span className="text-gold-300 font-display font-bold text-sm tracking-widest">🏯 CERCO</span>
+          <span className="text-gold-300 font-display font-bold text-sm tracking-widest"> CERCO</span>
           <span className="text-ink-300 text-xs">{score} / {total}</span>
           <span className="text-ink-400 text-xs">HSK {hskLevel}</span>
         </div>
@@ -427,7 +447,7 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
               onClick={cancelDrawing}
               className="flex-1 py-1.5 text-xs rounded-lg border border-red-500/40 text-red-400 hover:bg-red-500/10 transition"
             >
-              ✕ Esc
+               Esc
             </button>
           </div>
         </div>
@@ -436,7 +456,7 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
       {phase === 'victory' && (
         <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/80 backdrop-blur-sm">
           <div className="text-center">
-            <p className="text-6xl mb-4">🏮</p>
+            <p className="text-6xl mb-4"></p>
             <h2 className="text-gold-300 font-display text-3xl font-bold mb-2">Cerco Vencido!</h2>
             <p className="text-ink-300 text-sm mb-6">{score} ofudas destruídos</p>
             <button onClick={() => window.location.reload()}

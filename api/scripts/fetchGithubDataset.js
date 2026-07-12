@@ -171,7 +171,7 @@ const HSK1_SEED_SENTENCES = [
  */
 async function fetchVocabFromGithub() {
   try {
-    console.log('📡 Buscando vocabulário HSK1 do GitHub...');
+    console.log(' Buscando vocabulário HSK1 do GitHub...');
     const res = await fetch(SOURCES.hsk1_vocab);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const raw = await res.json();
@@ -186,10 +186,10 @@ async function fetchVocabFromGithub() {
       frequency: item.q ?? item.frequency ?? 9999,
     }));
 
-    console.log(`✅ ${normalized.length} palavras carregadas do GitHub.`);
+    console.log(` ${normalized.length} palavras carregadas do GitHub.`);
     return normalized;
   } catch (err) {
-    console.warn(`⚠️  GitHub fetch falhou (${err.message}). Usando seed local.`);
+    console.warn(`️  GitHub fetch falhou (${err.message}). Usando seed local.`);
     return null;
   }
 }
@@ -201,12 +201,12 @@ async function saveJSON(relPath, data) {
   const fullPath = path.resolve(__dirname, '../_data', relPath);
   await fs.mkdir(path.dirname(fullPath), { recursive: true });
   await fs.writeFile(fullPath, JSON.stringify(data, null, 2), 'utf8');
-  console.log(`💾 Salvo em: ${fullPath}`);
+  console.log(` Salvo em: ${fullPath}`);
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 async function main() {
-  console.log('\n🚀 Iniciando ingestão do dataset HSK1...\n');
+  console.log('\n Iniciando ingestão do dataset HSK1...\n');
 
   // 1. Vocabulário (palavras isoladas)
   const vocab = await fetchVocabFromGithub();
@@ -229,10 +229,10 @@ async function main() {
   // 2. Sentenças estruturadas (sempre salva as seeds)
   await saveJSON('hsk1_sentences.json', HSK1_SEED_SENTENCES);
 
-  console.log('\n✨ Ingestão concluída. Próximo passo: rodar lessonGenerator.js\n');
+  console.log('\n Ingestão concluída. Próximo passo: rodar lessonGenerator.js\n');
 }
 
 main().catch((err) => {
-  console.error('❌ Erro fatal:', err);
+  console.error(' Erro fatal:', err);
   process.exit(1);
 });

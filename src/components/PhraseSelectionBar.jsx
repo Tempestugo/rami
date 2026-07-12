@@ -60,7 +60,7 @@ export default function PhraseSelectionBar() {
                      text-white text-sm font-semibold transition-all duration-150
                      disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? '⏳ Buscando...' : `🀄 Formar Frase (${phraseSelection.length})`}
+          {loading ? ' Buscando...' : `🀄 Formar Frase (${phraseSelection.length})`}
         </button>
 
         <button

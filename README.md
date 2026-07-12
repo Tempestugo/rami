@@ -2,7 +2,7 @@
 
 > Ferramenta interativa de mapeamento mental e memorização de caracteres chineses (漢字)
 
-## 🚀 Deploy na Vercel (passo a passo)
+##  Deploy na Vercel (passo a passo)
 
 ### Opção A — Deploy pela interface web (mais fácil)
 
@@ -14,7 +14,7 @@
    - **Build Command:** `npm run build`
    - **Output Directory:** `dist`
    - **Install Command:** `npm install`
-5. Clique em **Deploy** — pronto! ✅
+5. Clique em **Deploy** — pronto! 
 
 ### Opção B — Deploy pela CLI da Vercel
 
@@ -38,7 +38,7 @@ Responda as perguntas da CLI:
 
 ---
 
-## 🗂️ Estrutura do Projeto
+## ️ Estrutura do Projeto
 
 ```
 rami-vercel/
@@ -81,7 +81,7 @@ rami-vercel/
 
 ---
 
-## 🔌 API Endpoints
+##  API Endpoints
 
 | Método | Rota | Descrição |
 |--------|------|-----------|
@@ -106,7 +106,7 @@ rami-vercel/
 
 ---
 
-## 🛠️ Desenvolvimento Local
+## ️ Desenvolvimento Local
 
 ```bash
 # Instalar dependências
@@ -126,7 +126,7 @@ npm run dev
 
 ---
 
-## ⚙️ Por que essa estrutura funciona na Vercel
+## ️ Por que essa estrutura funciona na Vercel
 
 A Vercel trata automaticamente:
 
@@ -137,7 +137,7 @@ A Vercel trata automaticamente:
 
 ---
 
-## 🧠 Funcionalidades
+##  Funcionalidades
 
 ### Três Modos de Grafo
 - **Evolução (evo):** Radical → Caracteres Derivados
@@ -160,7 +160,7 @@ A Vercel trata automaticamente:
 
 ---
 
-## 📦 Stack
+##  Stack
 
 | Camada | Tecnologia |
 |--------|-----------|

@@ -3,11 +3,11 @@ import { hanziData } from './api/_data/hanziData.js';
 import { phraseData } from './api/_data/phraseData.js';
 
 async function migrate() {
-    console.log('🚀 Iniciando migração para o exército Lumi...');
+    console.log(' Iniciando migração para o exército Lumi...');
 
     try {
         // 1. Migrar Caracteres
-        console.log('📝 Importando caracteres...');
+        console.log(' Importando caracteres...');
         for (const char of hanziData) {
             await pool.query(
                 `INSERT INTO characters (hanzi, pinyin, meaning, hsk_level) 
@@ -18,7 +18,7 @@ async function migrate() {
         }
 
         // 2. Migrar Relações de Componentes (O coração da sua mecânica de Boss)
-        console.log('🔗 Mapeando componentes e radicais...');
+        console.log(' Mapeando componentes e radicais...');
         for (const char of hanziData) {
             if (char.components && Array.isArray(char.components)) {
                 for (const compHanzi of char.components) {
@@ -37,7 +37,7 @@ async function migrate() {
         }
 
         // 3. Migrar Frases
-        console.log('📚 Populando biblioteca de frases...');
+        console.log(' Populando biblioteca de frases...');
         for (const phrase of phraseData) {
             await pool.query(
                 'INSERT IGNORE INTO phrases (simplified, pinyin, meaning, hsk_level) VALUES (?, ?, ?, ?)',
@@ -45,9 +45,9 @@ async function migrate() {
             );
         }
 
-        console.log('✅ Migração concluída com sucesso! Tropas prontas para o combate.');
+        console.log(' Migração concluída com sucesso! Tropas prontas para o combate.');
     } catch (err) {
-        console.error('❌ Erro na migração:', err);
+        console.error(' Erro na migração:', err);
     } finally {
         process.exit();
     }

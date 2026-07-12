@@ -61,11 +61,11 @@ async function run() {
   const importedPhrases = [...originalPhrases];
   const existingPhrases = new Set(originalPhrases.map(p => p.phrase));
 
-  console.log(`🚀 Iniciando importação da biblioteca de frases HSK...`);
+  console.log(` Iniciando importação da biblioteca de frases HSK...`);
 
   for (let level = 1; level <= 6; level++) {
     const url = `https://raw.githubusercontent.com/krmanik/Chinese-Grammar/master/CSV%20Files%20HSK1%20-%20HSK6/hsk${level}.csv`;
-    console.log(`📥 Baixando frases HSK ${level} de: ${url}...`);
+    console.log(` Baixando frases HSK ${level} de: ${url}...`);
 
     try {
       const csvData = await downloadFile(url);
@@ -104,13 +104,13 @@ async function run() {
         count++;
       }
 
-      console.log(`✅ Adicionadas ${count} frases para o nível HSK ${level}`);
+      console.log(` Adicionadas ${count} frases para o nível HSK ${level}`);
     } catch (err) {
-      console.error(`❌ Erro ao processar frases HSK ${level}:`, err.message);
+      console.error(` Erro ao processar frases HSK ${level}:`, err.message);
     }
   }
 
-  console.log(`📦 Biblioteca de frases unificada: ${importedPhrases.length} frases total!`);
+  console.log(` Biblioteca de frases unificada: ${importedPhrases.length} frases total!`);
 
   // Gera código fonte do arquivo JS
   const fileContent = `/**
@@ -122,7 +122,7 @@ export const phraseData = ${JSON.stringify(importedPhrases, null, 2)};
 `;
 
   fs.writeFileSync(TARGET_FILE, fileContent, 'utf-8');
-  console.log(`🎉 Gravado com sucesso em: ${TARGET_FILE}`);
+  console.log(` Gravado com sucesso em: ${TARGET_FILE}`);
 }
 
 run();

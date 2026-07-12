@@ -100,12 +100,12 @@ function getCharacterContext(char) {
 }
 
 const CONTEXTS = [
-  { id: 'all', label: 'Todos os Contextos', icon: '🌌', color: 'border-white/10 text-white bg-white/5 hover:bg-white/10' },
-  { id: 'cozinha', label: 'Culinária / Cozinha', icon: '🍚', color: 'border-blue-500/30 text-blue-400 bg-blue-500/5 hover:bg-blue-500/10' },
-  { id: 'natureza', label: 'Natureza / Clima', icon: '🌲', color: 'border-green-500/30 text-green-400 bg-green-500/5 hover:bg-green-500/10' },
-  { id: 'pessoas', label: 'Pessoas / Família', icon: '👥', color: 'border-yellow-300/30 text-yellow-300 bg-yellow-300/5 hover:bg-yellow-300/10' },
-  { id: 'estudo', label: 'Ações / Estudos', icon: '📚', color: 'border-purple-500/30 text-purple-400 bg-purple-500/5 hover:bg-purple-500/10' },
-  { id: 'casa', label: 'Casa / Cotidiano', icon: '🏡', color: 'border-amber-500/30 text-amber-400 bg-amber-500/5 hover:bg-amber-500/10' },
+  { id: 'all', label: 'Todos os Contextos', icon: '', color: 'border-white/10 text-white bg-white/5 hover:bg-white/10' },
+  { id: 'cozinha', label: 'Culinária / Cozinha', icon: '', color: 'border-blue-500/30 text-blue-400 bg-blue-500/5 hover:bg-blue-500/10' },
+  { id: 'natureza', label: 'Natureza / Clima', icon: '', color: 'border-green-500/30 text-green-400 bg-green-500/5 hover:bg-green-500/10' },
+  { id: 'pessoas', label: 'Pessoas / Família', icon: '', color: 'border-yellow-300/30 text-yellow-300 bg-yellow-300/5 hover:bg-yellow-300/10' },
+  { id: 'estudo', label: 'Ações / Estudos', icon: '', color: 'border-purple-500/30 text-purple-400 bg-purple-500/5 hover:bg-purple-500/10' },
+  { id: 'casa', label: 'Casa / Cotidiano', icon: '', color: 'border-amber-500/30 text-amber-400 bg-amber-500/5 hover:bg-amber-500/10' },
 ];
 
 export default function LearningTrail() {
@@ -252,17 +252,7 @@ export default function LearningTrail() {
 
   // 2. Iniciar Sessão de Treino
   const startSession = async (type) => {
-    // ---- Weekly limit ----
-    const now = new Date();
-    const year = now.getFullYear();
-    const week = Math.ceil(((now - new Date(year,0,1)) / 86400000 + new Date(year,0,1).getDay()+1)/7);
-    const weekKey = `practice_week_${year}_W${week}`;
-    const used = parseInt(localStorage.getItem(weekKey) || '0', 10);
-    if (used >= 3) {
-      alert('Você já praticou frases 3 vezes esta semana. Volte na próxima semana.');
-      return;
-    }
-    // ---- End weekly limit ----
+    // ---- Removed weekly limit ----
     if (knownCards.length === 0) return;
     setPracticeType(type);
     setLoadingCards(true);
@@ -744,7 +734,7 @@ export default function LearningTrail() {
 
         {knownCards.length === 0 ? (
           <div className="flex flex-col gap-5 items-center justify-center text-center p-8 bg-ink-900 border border-white/10 rounded-2xl max-w-md w-full shadow-lg">
-            <span className="text-5xl">🎴</span>
+            <span className="text-5xl"></span>
             <h3 className="text-white font-bold text-lg font-display">Seu Dicionário está vazio</h3>
             <p className="text-ink-400 text-sm leading-relaxed font-body">
               Você precisa adicionar caracteres que conhece na aba <strong>Estudar (Explorer)</strong>. Abra o painel lateral direito de qualquer caractere no grafo e clique em <strong>"Adicionar aos Conhecidos"</strong>.
@@ -786,11 +776,6 @@ export default function LearningTrail() {
               </div>
             </div>
 
-            {!canPractice && (
-              <div className="text-center p-4 bg-ink-800 border border-white/10 rounded-xl text-sm text-ink-400 font-body">
-                Você atingiu o limite semanal de 3 práticas de frases ({weeklyCount}/3). A prática estará disponível novamente na próxima semana.
-              </div>
-            )}
 
             {/* Opções de Prática */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -799,7 +784,7 @@ export default function LearningTrail() {
                   id: 'drawing',
                   title: 'Praticar Escrita',
                   desc: 'Escreva de cabeça (Caso 1). Focado em ordem de traços.',
-                  icon: '✍️',
+                  icon: '️',
                   color: 'border-azure-500/25 hover:border-azure-500/50 hover:bg-azure-500/5',
                   text: 'text-azure-300'
                 },
@@ -815,7 +800,7 @@ export default function LearningTrail() {
                   id: 'mixed',
                   title: 'Sessão Mista',
                   desc: 'Mistura aleatoriamente desafios de escrita e pinyin.',
-                  icon: '⚔️',
+                  icon: '️',
                   color: 'border-purple-500/25 hover:border-purple-500/50 hover:bg-purple-500/5',
                   text: 'text-purple-300'
                 }
@@ -891,7 +876,7 @@ export default function LearningTrail() {
                   onClick={() => setShowPinyin(!showPinyin)}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 bg-white/5 text-xs text-ink-300 hover:bg-white/10 hover:text-white transition"
                 >
-                  <span>{showPinyin ? '👁️‍🗨️ Ocultar Pinyin' : '👁️ Mostrar Pinyin'}</span>
+                  <span>{showPinyin ? '️‍️ Ocultar Pinyin' : '️ Mostrar Pinyin'}</span>
                 </button>
                 {showPinyin && (
                   <span className="text-sm font-mono text-azure-300 fade-in ml-2">
@@ -962,7 +947,7 @@ export default function LearningTrail() {
                   onClick={() => setShowMeaning(!showMeaning)}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 bg-white/5 text-xs text-ink-300 hover:bg-white/10 hover:text-white transition"
                 >
-                  <span>{showMeaning ? '👁️‍🗨️ Ocultar Tradução' : '👁️ Mostrar Tradução'}</span>
+                  <span>{showMeaning ? '️‍️ Ocultar Tradução' : '️ Mostrar Tradução'}</span>
                 </button>
                 {showMeaning && (
                   <span className="text-sm font-body text-gold-300 fade-in ml-2">
@@ -1094,7 +1079,7 @@ export default function LearningTrail() {
                               : 'bg-white/5 border-white/10 text-ink-400 hover:text-white'
                           }`}
                         >
-                          👍 Lembrei
+                           Lembrei
                         </button>
                         <button
                           onClick={() => handleVoteChar(char, 'forgot')}
@@ -1104,7 +1089,7 @@ export default function LearningTrail() {
                               : 'bg-white/5 border-white/10 text-ink-400 hover:text-white'
                           }`}
                         >
-                          👎 Esqueci
+                           Esqueci
                         </button>
                       </div>
                     </div>
@@ -1148,7 +1133,7 @@ export default function LearningTrail() {
                   onClick={handleShowHint}
                   className="flex-1 py-2 text-xs font-bold rounded-lg border border-white/15 text-ink-300 hover:bg-white/5 transition"
                 >
-                  💡 Mostrar Dica
+                   Mostrar Dica
                 </button>
                 <button
                   onClick={() => writerRef.current?.undo?.()}
@@ -1160,7 +1145,7 @@ export default function LearningTrail() {
                   onClick={handleCloseDrawingPad}
                   className="px-3 py-2 text-xs font-bold rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 transition"
                 >
-                  ✕ Fechar
+                   Fechar
                 </button>
               </div>
             </div>
@@ -1236,7 +1221,7 @@ export default function LearningTrail() {
                   onClick={handleRepeatDetailsAnimation}
                   className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-ink-800 border border-white/15 text-ink-200 hover:bg-ink-700 hover:text-white transition-all duration-150"
                 >
-                  ⚡ Animar Novamente
+                   Animar Novamente
                 </button>
               </div>
 
@@ -1266,14 +1251,14 @@ export default function LearningTrail() {
             onClick={() => setViewState('DASHBOARD')}
             className="px-5 py-2 text-xs font-bold uppercase tracking-wider border border-white/10 rounded-lg text-ink-400 hover:text-white hover:bg-white/5 transition"
           >
-            ✕ Abandonar
+             Abandonar
           </button>
 
           <button
             onClick={handleRevealAndSkip}
             className="px-5 py-2 text-xs font-bold uppercase tracking-wider border border-white/10 rounded-lg text-ink-400 hover:text-white hover:bg-white/5 transition"
           >
-            {(chars.filter(isChineseChar).every(c => completedChars[c]) && (activeCase === 1 || pinyinChecked) && showPinyin && showMeaning) ? 'Próxima Frase ➔' : 'Revelar Tudo 👁️'}
+            {(chars.filter(isChineseChar).every(c => completedChars[c]) && (activeCase === 1 || pinyinChecked) && showPinyin && showMeaning) ? 'Próxima Frase ' : 'Revelar Tudo ️'}
           </button>
           {/* Botões do Caso 1 */}
           {activeCase === 1 && srsSelfAssessment === null && (
@@ -1295,7 +1280,7 @@ export default function LearningTrail() {
               onClick={handleSubmitPhraseResults}
               className="px-6 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider bg-jade-600/20 border border-jade-600/40 text-jade-300 hover:bg-jade-600/30 transition-all"
             >
-              Confirmar & Próxima ➔
+              Confirmar & Próxima 
             </button>
           )}
 
@@ -1314,7 +1299,7 @@ export default function LearningTrail() {
               onClick={handleSubmitPhraseResults}
               className="px-6 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider bg-jade-600/20 border border-jade-600/40 text-jade-300 hover:bg-jade-600/30 transition-all"
             >
-              Salvar & Próxima ➔
+              Salvar & Próxima 
             </button>
           )}
         </div>
@@ -1327,7 +1312,7 @@ export default function LearningTrail() {
     return (
       <div className="w-full h-full overflow-y-auto bg-ink-950 flex flex-col items-center py-12 px-6">
         <div className="mb-8 text-center max-w-xl fade-up">
-          <span className="text-5xl">🏮</span>
+          <span className="text-5xl"></span>
           <h2 className="text-3xl font-display text-gold-400 font-bold mt-3 mb-2">Treino Concluído!</h2>
           <p className="text-ink-400 text-sm font-body">Excelente sessão! Os níveis de proficiência (SRS) foram atualizados no banco.</p>
         </div>
@@ -1359,7 +1344,7 @@ export default function LearningTrail() {
                           <span>Lv{orig}</span>
                           {levelChanged && (
                             <>
-                              <span className="text-ink-500 mx-0.5">➔</span>
+                              <span className="text-ink-500 mx-0.5"></span>
                               <span className={next > orig ? 'text-jade-400 font-bold' : 'text-red-400 font-bold'}>
                                 Lv{next} {next > orig ? '▲' : '▼'}
                               </span>

@@ -130,7 +130,7 @@ export default function CardCollection() {
               onClick={() => setIsModalOpen(true)}
               className="flex items-center gap-2 px-4 py-2 bg-jade-500/10 border border-jade-500/35 hover:bg-jade-500/20 text-jade-300 rounded-lg text-sm font-bold font-mono transition"
             >
-              <span>➕</span> Adicionar
+              <span></span> Adicionar
             </button>
             <div className="relative">
               <input
@@ -140,7 +140,7 @@ export default function CardCollection() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full sm:w-64 bg-ink-900 border border-white/10 rounded-lg px-4 py-2 text-white placeholder-ink-500 focus:outline-none focus:border-jade-500 focus:ring-1 focus:ring-jade-500 text-sm"
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-500">🔍</span>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-500"></span>
             </div>
           </div>
         </div>
@@ -225,7 +225,7 @@ function AddCardsModal({ isOpen, onClose, knownCards, onAddCard, addingMap }) {
             onClick={onClose}
             className="text-ink-400 hover:text-white transition text-lg font-bold"
           >
-            ✕
+            
           </button>
         </div>
 
@@ -245,7 +245,7 @@ function AddCardsModal({ isOpen, onClose, knownCards, onAddCard, addingMap }) {
                 onClick={() => setQuery('')}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-ink-500 hover:text-white"
               >
-                ✕
+                
               </button>
             )}
           </div>
@@ -282,7 +282,7 @@ function AddCardsModal({ isOpen, onClose, knownCards, onAddCard, addingMap }) {
                   <div>
                     {isKnown ? (
                       <span className="text-xs font-mono font-bold text-jade-400 bg-jade-500/10 px-2.5 py-1.5 rounded-lg border border-jade-500/20">
-                        ✓ Conhecido (Lv {knownCard.srs_level})
+                         Conhecido (Lv {knownCard.srs_level})
                       </span>
                     ) : (
                       <button
@@ -299,7 +299,7 @@ function AddCardsModal({ isOpen, onClose, knownCards, onAddCard, addingMap }) {
             })
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-center text-ink-500 py-12">
-              <span className="text-3xl mb-2">🤷‍♂️</span>
+              <span className="text-3xl mb-2">‍️</span>
               <p className="text-sm">Nenhum ideograma encontrado para "{query}".</p>
             </div>
           )}

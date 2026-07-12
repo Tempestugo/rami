@@ -15,7 +15,7 @@ import { hanziData as originalHanzi } from '../_data/hanziData.js';
 
 function downloadFile(url) {
   return new Promise((resolve, reject) => {
-    console.log(`🌐 Baixando de: ${url}...`);
+    console.log(` Baixando de: ${url}...`);
     https.get(url, (res) => {
       if (res.statusCode !== 200) {
         reject(new Error(`Falha no download: Código ${res.statusCode} para ${url}`));
@@ -65,7 +65,7 @@ async function run() {
     ]);
 
     // 2. Construir mapa de HSK por caractere
-    console.log('📊 Mapeando níveis HSK para caracteres...');
+    console.log(' Mapeando níveis HSK para caracteres...');
     const charHskMap = new Map();
     const hskWords = JSON.parse(hskRaw);
 
@@ -84,7 +84,7 @@ async function run() {
 
     // 3. Processar MakeMeAHanzi
     const lines = makemeRaw.split('\n');
-    console.log(`📊 Processando ${lines.length} linhas do dataset MakeMeAHanzi...`);
+    console.log(` Processando ${lines.length} linhas do dataset MakeMeAHanzi...`);
 
     const originalMap = new Map(originalHanzi.map(h => [h.id, h]));
     const importedList = [...originalHanzi];
@@ -125,8 +125,8 @@ async function run() {
       }
     }
 
-    console.log(`✅ Adicionados ${newCount} novos caracteres ao banco de dados!`);
-    console.log(`📦 Total de caracteres agora: ${importedList.length}`);
+    console.log(` Adicionados ${newCount} novos caracteres ao banco de dados!`);
+    console.log(` Total de caracteres agora: ${importedList.length}`);
 
     // Gera o código fonte do arquivo JS
     const fileContent = `/**
@@ -138,9 +138,9 @@ export const hanziData = ${JSON.stringify(importedList, null, 2)};
 `;
 
     fs.writeFileSync(TARGET_FILE, fileContent, 'utf-8');
-    console.log(`🎉 Gravação realizada com sucesso em: ${TARGET_FILE}`);
+    console.log(` Gravação realizada com sucesso em: ${TARGET_FILE}`);
   } catch (err) {
-    console.error('❌ Erro na importação do dataset:', err);
+    console.error(' Erro na importação do dataset:', err);
   }
 }
 
