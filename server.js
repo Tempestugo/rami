@@ -1,6 +1,22 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { execSync } from 'child_process';
+
+// === HOSTINGER AUTO-BUILD HOOK ===
+// Isso permite que a Hostinger compile o React automaticamente ao iniciar o Node.
+if (process.env.NODE_ENV !== 'development' && !process.argv.includes('--no-build')) {
+  console.log('📦 Iniciando build do Frontend automaticamente...');
+  try {
+    // Corrige permissões do esbuild (comum em hospedagem compartilhada)
+    execSync('chmod +x node_modules/.bin/* node_modules/@esbuild/linux-x64/bin/esbuild || true', { stdio: 'inherit' });
+    // Executa o build do Vite
+    execSync('npm run build', { stdio: 'inherit' });
+    console.log('✅ Build do Frontend concluído com sucesso!');
+  } catch (err) {
+    console.error('⚠️ Erro no build automático (pode ignorar se o app funcionar):', err.message);
+  }
+}
 
 import graphHandler  from './api/graph/index.js';
 import charHandler   from './api/graph/character/[id].js';
