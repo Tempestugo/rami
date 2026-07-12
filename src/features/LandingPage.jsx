@@ -516,7 +516,7 @@ function MiniLearn() {
         </div>
       ) : (
         <div style={{ width:90, height:90, display:'flex', alignItems:'center', justifyContent:'center' }}>
-          <span style={{ fontSize:32 }}>✨</span>
+          <span style={{ fontSize:32 }}>文</span>
         </div>
       )}
 

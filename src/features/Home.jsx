@@ -788,8 +788,8 @@ export default function Home({ onNavigate }) {
   ];
 
   return (
-    <div className="flex-1 overflow-y-auto bg-ink-950 p-6">
-      <div className="max-w-4xl mx-auto flex flex-col gap-8">
+    <div className="flex-1 overflow-y-auto bg-ink-950 p-4 sm:p-6">
+      <div className="max-w-4xl mx-auto flex flex-col gap-6 sm:gap-8">
 
         {/* ── Header ── */}
         <div className="flex items-start justify-between">

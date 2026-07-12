@@ -58,8 +58,8 @@ function findPhrases(charsInput, limit = 300) {
   });
 
   return scored
-    .filter(e => e.coverage >= 0.8)
-    .sort((a, b) => b.srsPriority - a.srsPriority || b.coverage - a.coverage || a.hsk - b.hsk)
+    .filter(e => e.matchCount >= 1)
+    .sort((a, b) => b.matchCount - a.matchCount || b.srsPriority - a.srsPriority || b.coverage - a.coverage || a.hsk - b.hsk)
     .slice(0, limit);
 }
 

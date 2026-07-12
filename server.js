@@ -1,34 +1,54 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { execSync } from 'child_process';
+import { execSync, exec } from 'child_process';
 import crypto from 'crypto';
 
-// === HOSTINGER AUTO-BUILD HOOK ===
-// Isso permite que a Hostinger compile o React automaticamente ao iniciar o Node.
-if (process.env.NODE_ENV !== 'development' && !process.argv.includes('--no-build')) {
-  console.log('📦 Iniciando deploy completo da Hostinger...');
-  try {
-    // Adiciona o Node.js 18 da Hostinger no PATH
-    const env = { ...process.env, PATH: `/opt/alt/alt-nodejs18/root/usr/bin:${process.env.PATH}` };
-    const options = { stdio: 'inherit', env };
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = path.dirname(__filename);
 
-    console.log('1/4 - Instalando dependências...');
-    execSync('/opt/alt/alt-nodejs18/root/usr/bin/npm install --ignore-scripts', options);
-    
-    console.log('2/4 - Corrigindo permissões...');
-    execSync('chmod +x node_modules/.bin/* node_modules/@esbuild/linux-x64/bin/esbuild || true', options);
-    
-    console.log('3/4 - Compilando o Frontend...');
-    execSync('npm run build', options);
-    
-    console.log('4/4 - Rodando fix-deploy.sh...');
-    try { execSync('bash ~/fix-deploy.sh', options); } catch(e) { /* Ignora se o arquivo não existir */ }
-    
-    console.log('✅ Deploy automático concluído com sucesso!');
-  } catch (err) {
-    console.error('⚠️ Erro no deploy automático:', err.message);
-  }
+// === HOSTINGER AUTO-BUILD HOOK ===
+let isBuilding = false;
+let buildLog = '';
+
+if (process.env.NODE_ENV !== 'development' && !process.argv.includes('--no-build')) {
+  isBuilding = true;
+  console.log('📦 Iniciando deploy em segundo plano da Hostinger...');
+  buildLog = 'Iniciando deploy em segundo plano...\n';
+  
+  const deployCmd = [
+    'git pull',
+    '/opt/alt/alt-nodejs18/root/usr/bin/npm install --ignore-scripts',
+    'chmod +x node_modules/.bin/* node_modules/@esbuild/linux-x64/bin/esbuild || true',
+    'PATH="/opt/alt/alt-nodejs18/root/usr/bin:$PATH" npm run build',
+    'bash ~/fix-deploy.sh || true'
+  ].join(' && ');
+
+  const buildProcess = exec(deployCmd, {
+    cwd: __dirname,
+    env: { ...process.env, PATH: `/opt/alt/alt-nodejs18/root/usr/bin:${process.env.PATH}` }
+  });
+
+  buildProcess.stdout.on('data', (data) => {
+    buildLog += data;
+    console.log('[Deploy STDOUT]:', data.trim());
+  });
+
+  buildProcess.stderr.on('data', (data) => {
+    buildLog += data;
+    console.error('[Deploy STDERR]:', data.trim());
+  });
+
+  buildProcess.on('close', (code) => {
+    if (code === 0) {
+      console.log('✅ Deploy automático concluído com sucesso!');
+      buildLog += '\n✅ Deploy automático concluído com sucesso! Recarregando frontend...';
+      isBuilding = false;
+    } else {
+      console.error(`❌ Erro no deploy automático. Código de saída: ${code}`);
+      buildLog += `\n❌ Erro no deploy automático. Código de saída: ${code}`;
+    }
+  });
 }
 
 import graphHandler  from './api/graph/index.js';
@@ -147,11 +167,44 @@ function enrichCharacterData(char) {
   };
 }
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname  = path.dirname(__filename);
+
 
 const app = express();
 app.use(express.json());
+
+// Middleware de atualização em segundo plano
+app.use((req, res, next) => {
+  if (isBuilding) {
+    if (req.path.startsWith('/api/')) {
+      return res.status(503).json({ error: 'O sistema está sendo atualizado no servidor. Tente novamente em alguns segundos.', log: buildLog });
+    }
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return res.status(503).send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Atualizando Rami...</title>
+        <meta http-equiv="refresh" content="5">
+        <style>
+          body { background: #0a0a0c; color: #e2e8f0; font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+          .loader { border: 4px solid #1e1b18; border-top: 4px solid #fbbf24; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 20px; }
+          @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+          h1 { color: #fbbf24; font-size: 24px; margin-bottom: 8px; }
+          p { color: #9ca3af; font-size: 14px; margin-bottom: 24px; text-align: center; max-width: 500px; }
+          pre { background: #16161a; padding: 16px; border-radius: 8px; border: 1px solid #27272a; max-width: 80%; width: 600px; overflow: auto; font-size: 11px; max-height: 250px; text-align: left; font-family: monospace; white-space: pre-wrap; word-break: break-all; }
+        </style>
+      </head>
+      <body>
+        <div class="loader"></div>
+        <h1>Atualizando Rami Mandirim</h1>
+        <p>Baixando a última versão do GitHub e compilando o frontend automaticamente no servidor. A página irá recarregar assim que concluir...</p>
+        <pre>${buildLog}</pre>
+      </body>
+      </html>
+    `);
+  }
+  next();
+});
 
 // --- SISTEMA DE AUTENTICAÇÃO ---
 function hashPassword(password) {

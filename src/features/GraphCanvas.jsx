@@ -131,9 +131,11 @@ export default function GraphCanvas() {
               });
             } catch (err) { /* Ignorar erros assíncronos do vis-network no console */ }
           } else {
-            networkRef.current.fit({
-              animation: { duration: 700, easingFunction: 'easeInOutQuad' }
-            });
+            try {
+              networkRef.current.fit({
+                animation: { duration: 700, easingFunction: 'easeInOutQuad' }
+              });
+            } catch (err) { /* Ignorar erros assíncronos */ }
           }
         };
         
@@ -171,7 +173,10 @@ export default function GraphCanvas() {
     network.on('dragging', () => setRadialMenu(null));
     network.on('zoom', () => setRadialMenu(null));
 
-    return () => network.destroy();
+    return () => {
+      network.destroy();
+      networkRef.current = null;
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Reload graph on filter change

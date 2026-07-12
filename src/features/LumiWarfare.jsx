@@ -183,6 +183,7 @@ const LumiWarfare = () => {
       x: 0, y: 0
     },
     selectedSlotId: null,
+    selectedShopCardForPlacement: null,
 
     lastBeat: 0,
     lastTs: 0,
@@ -201,7 +202,7 @@ const LumiWarfare = () => {
 
     const resize = () => {
       const w = containerRef.current.clientWidth;
-      const h = containerRef.current.clientHeight;
+      const h = containerRef.current.clientHeight - 80;
       canvas.width = w;
       canvas.height = h;
 
@@ -665,13 +666,28 @@ const LumiWarfare = () => {
           ctx.fillStyle = '#9ca3af';
           ctx.fillText(sl.targetMode.toUpperCase(), tx, ty - 32 - 10);
         } else {
-          ctx.fillStyle = 'rgba(255,255,255,0.02)';
-          ctx.fill();
-          ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-          ctx.lineWidth = 2;
-          ctx.setLineDash([4, 4]);
-          ctx.stroke();
-          ctx.setLineDash([]);
+          const isPlacing = s.selectedShopCardForPlacement;
+          ctx.beginPath();
+          ctx.arc(tx, ty, 32, 0, Math.PI * 2);
+          if (isPlacing) {
+            const canAfford = s.money >= s.selectedShopCardForPlacement.cost;
+            ctx.fillStyle = canAfford ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)';
+            ctx.fill();
+            ctx.strokeStyle = canAfford ? '#10b981' : '#ef4444';
+            ctx.lineWidth = 3;
+            const pulse = Math.sin(Date.now() / 150) * 0.4 + 0.6;
+            ctx.globalAlpha = pulse;
+            ctx.stroke();
+            ctx.globalAlpha = 1.0;
+          } else {
+            ctx.fillStyle = 'rgba(255,255,255,0.02)';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([4, 4]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+          }
         }
       });
 
@@ -754,7 +770,7 @@ const LumiWarfare = () => {
       window.removeEventListener('pointerup', onGlobalUp);
       window.removeEventListener('pointermove', onGlobalMove);
     };
-  }, [activeDeck]);
+  }, [activeDeck, phase]);
 
   // ── Drag & Drop + Link Logic ────────────────────────────────────────────────
   const handlePointerDown = (e) => {
@@ -764,6 +780,37 @@ const LumiWarfare = () => {
     const py = e.clientY - rect.top;
 
     const clickedSlot = s.slots.find(sl => Math.hypot(sl.x - px, sl.y - py) < 32);
+
+    // Se estiver em modo de posicionamento da Loja (Tap-to-Place)
+    if (s.selectedShopCardForPlacement) {
+      if (clickedSlot && !clickedSlot.content) {
+        const card = s.selectedShopCardForPlacement;
+        if (s.money >= card.cost) {
+          s.money -= card.cost;
+          setMoneyReact(s.money);
+          clickedSlot.content = { ...card, damageBonus: 0 };
+          
+          for (let i = 0; i < 15; i++) {
+            s.particles.push({
+              x: clickedSlot.x, y: clickedSlot.y,
+              vx: (Math.random() - 0.5) * 10, vy: (Math.random() - 0.5) * 10,
+              life: 1.0, color: FAMILY_VISUAL[clickedSlot.content.family]?.color || '#fff', size: Math.random() * 4 + 2,
+            });
+          }
+          s.selectedShopCardForPlacement = null;
+          setUiTick(t => t + 1);
+          return;
+        } else {
+          s.floatingTexts.push({ x: px, y: py, text: 'SEM DINHEIRO', color: '#f87171', life: 1, vy: -1, isCrit: true });
+        }
+      }
+      
+      // Qualquer outro clique (fora de slot vazio) cancela o modo de posicionamento
+      s.selectedShopCardForPlacement = null;
+      setUiTick(t => t + 1);
+      return;
+    }
+
     if (clickedSlot && clickedSlot.content) {
       s.dragState = { active: true, type: 'LINK', sourceId: clickedSlot.id, x: px, y: py, startX: px, startY: py };
     }
@@ -873,6 +920,12 @@ const LumiWarfare = () => {
 
     // Detectando um "Clique Limpo" na torre para abrir o Painel Lateral
     const dist = Math.hypot(px - (s.dragState.startX || px), py - (s.dragState.startY || py));
+    if (s.dragState.type === 'SHOP' && dist < 15) {
+      s.selectedShopCardForPlacement = s.dragState.sourceCard;
+      s.dragState.active = false;
+      setUiTick(t => t + 1);
+      return;
+    }
     if (s.dragState.type === 'LINK' && dist < 30) {
       const slot = s.slots.find(sl => sl.id === s.dragState.sourceId);
       if (slot && slot.content) {
@@ -928,12 +981,16 @@ const LumiWarfare = () => {
     if (moneyReact < card.cost) return; 
     
     const rect = canvasRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
     s.dragState = {
       active: true,
       type: 'SHOP',
       sourceCard: card,
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
+      x,
+      y,
+      startX: x,
+      startY: y
     };
   };
 
@@ -993,13 +1050,18 @@ const LumiWarfare = () => {
           <div className="flex gap-2 flex-wrap justify-center shrink-0">
             {SHOP_CARDS.map((card, i) => {
               const vis = FAMILY_VISUAL[card.family] || DEFAULT_VISUAL;
+              const isSelected = gameState.current.selectedShopCardForPlacement?.char === card.char;
               return (
                 <div key={i} className="relative">
                   <button
                     onPointerDown={(e) => startDragShop(e, card)}
                     disabled={moneyReact < card.cost}
-                    className="relative w-16 h-20 rounded border flex flex-col items-center justify-center transition-all bg-ink-800 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-ink-700 hover:-translate-y-1 touch-none select-none"
-                    style={{ borderColor: vis.color, color: vis.color, cursor: moneyReact >= card.cost ? 'grab' : 'not-allowed' }}
+                    className={`relative w-16 h-20 rounded border flex flex-col items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:-translate-y-1 touch-none select-none ${
+                      isSelected
+                        ? 'bg-gold-500/25 border-gold-400 shadow-[0_0_12px_rgba(251,191,36,0.4)] text-gold-300'
+                        : 'bg-ink-800 border-white/10 hover:bg-ink-700'
+                    }`}
+                    style={{ color: vis.color, cursor: moneyReact >= card.cost ? 'grab' : 'not-allowed' }}
                   >
                     <span className="font-bold text-2xl font-display pointer-events-none drop-shadow-md">{card.char}</span>
                     <span className="text-[8px] leading-[1.1] text-center w-full px-1 font-mono opacity-90 mt-1 pointer-events-none break-words">
@@ -1040,7 +1102,7 @@ const LumiWarfare = () => {
              style={{ borderColor: FAMILY_VISUAL[selectedShopCard.family]?.color || '#fff' }}
              onClick={(e) => e.stopPropagation()}
            >
-             <button onClick={() => setSelectedShopCard(null)} className="absolute top-4 right-4 text-white/50 hover:text-white">✖</button>
+             <button onClick={() => setSelectedShopCard(null)} className="absolute top-4 right-4 text-white/50 hover:text-white">×</button>
              <div 
                 className="w-24 h-24 mx-auto rounded-full border-4 flex items-center justify-center mb-4 bg-black/40"
                 style={{ borderColor: FAMILY_VISUAL[selectedShopCard.family]?.color || '#fff', color: FAMILY_VISUAL[selectedShopCard.family]?.color || '#fff' }}
@@ -1090,7 +1152,7 @@ const LumiWarfare = () => {
              style={{ borderLeftColor: FAMILY_VISUAL[slot.content.family]?.color || '#fff' }}
              onClick={(e) => e.stopPropagation()}
           >
-                  <button onClick={() => { s.selectedSlotId = null; setSelectedTowerSlotId(null); }} className="absolute top-4 left-4 text-white/50 hover:text-white text-2xl font-bold">✖</button>
+                  <button onClick={() => { gameState.current.selectedSlotId = null; setSelectedTowerSlotId(null); }} className="absolute top-4 left-4 text-white/50 hover:text-white text-2xl font-bold">×</button>
              
              <div className="p-6 flex-1 overflow-y-auto">
                <h3 className="text-xl font-bold font-display mt-8 mb-1 flex flex-col items-center justify-center gap-2 text-center">
@@ -1183,8 +1245,9 @@ const LumiWarfare = () => {
                     gameState.current.links.forEach(l => l.type = 'neutral');
                     
                     gameState.current.floatingTexts.push({ x: slot.x, y: slot.y - 20, text: `+¥${refundValue}`, color: '#10b981', life: 1, vy: -1, isCrit: true });
-                    s.selectedSlotId = null;
+                    gameState.current.selectedSlotId = null;
                     setSelectedTowerSlotId(null);
+                    updateGraphSynergies();
                   }}
                   className="w-full py-3 bg-red-600/80 hover:bg-red-500 border border-red-400 text-white font-bold rounded transition flex items-center justify-center gap-2"
                 >
@@ -1203,7 +1266,7 @@ const LumiWarfare = () => {
           className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center text-white text-2xl shadow-lg border-2 border-indigo-400 hover:bg-indigo-500 transition hover:scale-110"
           title="Ajuda e Pausa"
         >
-          ❓
+          ?
         </button>
       )}
 
@@ -1281,12 +1344,12 @@ const LumiWarfare = () => {
                 <div>
                   <h3 className="text-xl font-bold text-gold-300">3. Radicais e Habilidades</h3>
                   <div className="grid grid-cols-2 gap-2 mt-2 text-sm text-ink-300 bg-ink-800 p-4 rounded-lg">
-                    <p>💧 <strong>Água (水):</strong> Dá lentidão no alvo.</p>
-                    <p>🔥 <strong>Fogo (火):</strong> Dano em Área (Splash).</p>
-                    <p>⛰️ <strong>Terra (土):</strong> Atordoa o alvo.</p>
-                    <p>👄 <strong>Boca (口):</strong> Empurra inimigos para trás.</p>
-                    <p>🌳 <strong>Madeira (木):</strong> Cura os pontos do seu Castelo.</p>
-                    <p>👤 <strong>Humano (人):</strong> Velocidade e Foco padrão.</p>
+                    <p><strong>Água (水):</strong> Dá lentidão no alvo.</p>
+                    <p><strong>Fogo (火):</strong> Dano em Área (Splash).</p>
+                    <p><strong>Terra (土):</strong> Atordoa o alvo.</p>
+                    <p><strong>Boca (口):</strong> Empurra inimigos para trás.</p>
+                    <p><strong>Madeira (木):</strong> Cura os pontos do seu Castelo.</p>
+                    <p><strong>Humano (人):</strong> Velocidade e Foco padrão.</p>
                   </div>
                 </div>
               </div>

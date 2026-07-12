@@ -107,6 +107,17 @@ export default function DetailsPanel() {
     }
   };
 
+  const handlePronounce = () => {
+    if (!activeChar || typeof window === 'undefined' || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(activeChar.id);
+    utterance.lang = 'zh-CN';
+    const voices = window.speechSynthesis.getVoices();
+    const zhVoice = voices.find(v => v.lang.startsWith('zh-') || v.lang.startsWith('zho') || v.lang === 'zh-CN');
+    if (zhVoice) utterance.voice = zhVoice;
+    window.speechSynthesis.speak(utterance);
+  };
+
   const isSelected = activeChar ? phraseSelection.includes(activeChar.id) : false;
 
   useEffect(() => {
@@ -207,8 +218,17 @@ export default function DetailsPanel() {
           {activeChar.id}
         </div>
 
-        <div className="text-vermillion-400 font-mono text-xl font-bold tracking-wide">
-          {activeChar.pinyin}
+        <div className="text-vermillion-400 font-mono text-xl font-bold tracking-wide flex items-center gap-2">
+          <span>{activeChar.pinyin}</span>
+          <button 
+            onClick={handlePronounce}
+            className="text-ink-400 hover:text-vermillion-400 transition-colors p-1 rounded hover:bg-white/5"
+            title="Ouvir pronúncia em chinês"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+            </svg>
+          </button>
         </div>
 
         <div className="text-ink-200 text-sm text-center font-body leading-relaxed">

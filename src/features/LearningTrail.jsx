@@ -823,7 +823,7 @@ export default function LearningTrail() {
                   id: 'pinyin',
                   title: 'Praticar Pinyin',
                   desc: 'Digite o pinyin correspondente dos ideogramas (Caso 2).',
-                  icon: '🀄',
+                  icon: '',
                   color: 'border-gold-500/25 hover:border-gold-500/50 hover:bg-gold-500/5',
                   text: 'text-gold-300'
                 },

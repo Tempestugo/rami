@@ -15,18 +15,18 @@ export default function PhraseModal() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
       onClick={handleClose}
     >
       <div
-        className="bg-ink-900 border border-white/15 rounded-2xl shadow-2xl w-full max-w-lg mx-4 p-6 fade-up"
+        className="bg-ink-900 border border-white/15 rounded-2xl shadow-2xl w-full max-w-lg p-6 fade-up flex flex-col max-h-[90vh]"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center justify-between mb-5 shrink-0">
           <div>
             <h2 className="text-lg font-semibold text-ink-100">Construtor de Frases</h2>
             <p className="text-xs text-ink-500 mt-0.5">
-              Caracteres selecionados: {phraseSelection.join(' · ')}
+              Caracteres selecionados: {phraseSelection.join(' + ')}
             </p>
           </div>
           <button
@@ -47,7 +47,7 @@ export default function PhraseModal() {
             </p>
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 overflow-y-auto pr-2 scrollbar-thin flex-1">
             {phraseResults.map((result, i) => (
               <div
                 key={i}
