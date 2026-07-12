@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import HanziWriter from 'hanzi-writer';
 import { hanziData } from '@/data/hanziData.js';
+import useStore from '@/store/useStore.js';
+import AutoTranslate from '../components/AutoTranslate';
 
 const LEVEL_NAMES = ['', 'Aprendendo', 'Familiar', 'Consolidando', 'Dominando', 'Mestre'];
 const SRS_COLORS = {
@@ -112,6 +114,11 @@ export default function LearningTrail() {
   // Estados de Fluxo: 'DASHBOARD' | 'PRACTICING' | 'SUMMARY'
   const [viewState, setViewState] = useState('DASHBOARD');
   
+  // Estado do Usuário Autenticado
+  const user = useStore(state => state.user);
+  const initialPracticeType = useStore(state => state.initialPracticeType);
+  const setInitialPracticeType = useStore(state => state.setInitialPracticeType);
+
   // Estado das Cartas Conhecidas
   const [knownCards, setKnownCards] = useState([]);
   const [loadingCards, setLoadingCards] = useState(true);
@@ -231,8 +238,9 @@ export default function LearningTrail() {
 
   // 1. Carregar cartas conhecidas no Dashboard
   const loadKnownCards = useCallback(() => {
+    if (!user) return;
     setLoadingCards(true);
-    fetch('/api/cards/1')
+    fetch(`/api/cards/${user.id}`)
       .then(res => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
@@ -249,6 +257,13 @@ export default function LearningTrail() {
   useEffect(() => {
     loadKnownCards();
   }, [loadKnownCards]);
+
+  useEffect(() => {
+    if (initialPracticeType && !loadingCards && knownCards.length > 0) {
+      startSession(initialPracticeType);
+      setInitialPracticeType(null);
+    }
+  }, [initialPracticeType, loadingCards, knownCards.length, setInitialPracticeType]);
 
   // 2. Iniciar Sessão de Treino
   const startSession = async (type) => {
@@ -632,11 +647,26 @@ export default function LearningTrail() {
           fetch('/api/cards', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: 1, char, vote })
+            body: JSON.stringify({ user_id: user.id, char, vote })
           })
         );
       }
     }
+    
+    // Adiciona atualização de XP
+    const xp = Object.values(assessmentVotes).filter(v => v === 'remembered').length * 10;
+    updates.push(
+      fetch('/api/progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: user.id,
+          lesson_id: `daily_${Date.now()}`,
+          sentence_id: 'auto_gen',
+          xp
+        })
+      }).catch(console.error)
+    );
 
     // Executa atualizações em background
     try {
@@ -713,7 +743,8 @@ export default function LearningTrail() {
   };
 
   const weeklyCount = getWeeklyPracticeCount();
-  const canPractice = weeklyCount < 3;
+  // Removed weekly limit constraint
+  const canPractice = true;
 
   // 7. Renderização do Dashboard Inicial
   if (viewState === 'DASHBOARD') {
@@ -866,7 +897,7 @@ export default function LearningTrail() {
               <div className="text-center">
                 <span className="text-[10px] text-azure-400 font-bold uppercase tracking-wider font-mono">Tradução em Inglês</span>
                 <h3 className="text-white text-2xl font-bold font-display mt-1 leading-relaxed">
-                  {activePhrase.translation}
+                  <AutoTranslate text={activePhrase.translation} />
                 </h3>
               </div>
 
@@ -951,7 +982,7 @@ export default function LearningTrail() {
                 </button>
                 {showMeaning && (
                   <span className="text-sm font-body text-gold-300 fade-in ml-2">
-                    {activePhrase.translation}
+                    <AutoTranslate text={activePhrase.translation} />
                   </span>
                 )}
               </div>
@@ -1120,7 +1151,7 @@ export default function LearningTrail() {
               <div 
                 ref={writerDivRef}
                 className="rounded-xl border border-white/10 bg-white/[0.02]"
-                style={{ width: 200, height: 200, touchAction: 'none' }}
+                style={{ width: 200, height: 200, touchAction: 'none', pointerEvents: 'auto', cursor: 'crosshair', userSelect: 'none' }}
               />
 
               <p className="text-[10px] text-ink-400 text-center font-mono">
@@ -1329,7 +1360,9 @@ export default function LearningTrail() {
                 <div key={idx} className="bg-black/30 rounded-xl p-4 border border-white/5">
                   <div className="flex justify-between items-baseline">
                     <h4 className="text-white font-bold font-display text-xl tracking-wider">{hist.phrase}</h4>
-                    <span className="text-[10px] font-body text-ink-400 italic">{hist.translation}</span>
+                    <span className="text-[10px] font-body text-ink-400 italic">
+                      <AutoTranslate text={hist.translation} />
+                    </span>
                   </div>
                   
                   <div className="flex flex-wrap gap-2.5 mt-3 pt-2.5 border-t border-white/5">

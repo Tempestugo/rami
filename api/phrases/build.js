@@ -5,6 +5,7 @@
 
 // 1. Importação moderna (ESM)
 import { phraseData } from '../_data/phraseData.js';
+import { phraseIndex } from '../_data/phraseIndex.js';
 
 function findPhrases(charsInput, limit = 300) {
   if (!charsInput || charsInput.length === 0) return [];
@@ -22,13 +23,29 @@ function findPhrases(charsInput, limit = 300) {
     }
   });
 
-  const scored = phraseData.map(entry => {
+  // Usando o Índice Invertido para pegar APENAS as frases candidatas (muito mais rápido!)
+  const candidateIndices = new Set();
+  targetSet.forEach(char => {
+    const indices = phraseIndex[char];
+    if (indices) {
+      for (let i = 0; i < indices.length; i++) {
+        candidateIndices.add(indices[i]);
+      }
+    }
+  });
+
+  const scored = [];
+  
+  // Processar matemática apenas no subconjunto de frases selecionadas
+  candidateIndices.forEach(idx => {
+    const entry = phraseData[idx];
+    if (!entry) return;
+
     const matchCount = entry.chars.filter(c => targetSet.has(c)).length;
     const coverage = entry.chars.length > 0 ? (matchCount / entry.chars.length) : 0;
     
     // Calcula srsPriority como a soma de (6 - srs_level) de cada ideograma da frase.
     // Ideogramas mais fracos (srs_level = 1) adicionam 5 pontos, etc.
-    // Isso prioriza frases contendo múltiplos caracteres fracos.
     let srsPriority = 0;
     entry.chars.forEach(c => {
       if (targetSet.has(c)) {
@@ -37,7 +54,7 @@ function findPhrases(charsInput, limit = 300) {
       }
     });
 
-    return { ...entry, matchCount, coverage, srsPriority };
+    scored.push({ ...entry, matchCount, coverage, srsPriority });
   });
 
   return scored

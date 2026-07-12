@@ -16,7 +16,7 @@ const HSK_BADGE_COLORS = {
 const LEVEL_NAMES = ['', 'Aprendendo', 'Familiar', 'Consolidando', 'Dominando', 'Mestre'];
 
 export default function DetailsPanel() {
-  const { activeChar, togglePhraseSelection, phraseSelection } = useStore();
+  const { activeChar, togglePhraseSelection, phraseSelection, user } = useStore();
   const writerTargetRef = useRef(null);
   const writerRef = useRef(null);
   const [quizActive, setQuizActive] = useState(false);
@@ -30,9 +30,9 @@ export default function DetailsPanel() {
   }, [activeChar]);
 
   useEffect(() => {
-    if (!activeChar) return;
+    if (!activeChar || !user) return;
     setLoadingSrs(true);
-    fetch(`/api/cards/1/status/${encodeURIComponent(activeChar.id)}`)
+    fetch(`/api/cards/${user.id}/status/${encodeURIComponent(activeChar.id)}`)
       .then(res => res.json())
       .then(data => {
         if (data.success) {
@@ -54,7 +54,7 @@ export default function DetailsPanel() {
       const res = await fetch('/api/cards', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: 1, char: activeChar.id, srs_level: 1 })
+        body: JSON.stringify({ user_id: user.id, char: activeChar.id, srs_level: 1 })
       });
       const data = await res.json();
       if (data.success) {
@@ -74,7 +74,7 @@ export default function DetailsPanel() {
       const res = await fetch('/api/cards', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: 1, char: activeChar.id, srs_level: level })
+        body: JSON.stringify({ user_id: user.id, char: activeChar.id, srs_level: level })
       });
       const data = await res.json();
       if (data.success) {
@@ -94,7 +94,7 @@ export default function DetailsPanel() {
       const res = await fetch('/api/cards', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: 1, char: activeChar.id })
+        body: JSON.stringify({ user_id: user.id, char: activeChar.id })
       });
       const data = await res.json();
       if (data.success) {

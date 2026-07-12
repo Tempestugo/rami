@@ -7,18 +7,20 @@
  */
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import HanziWriter from 'hanzi-writer';
+import useStore from '../store/useStore';
+import { hanziData } from '@/data/hanziData.js';
 
 // ─── Config ──────────────────────────────────────────────────────────────────
-const OFUDA_W   = 80;
-const OFUDA_H   = 120;
+const OFUDA_W = 80;
+const OFUDA_H = 120;
 const WRITER_SZ = 220;
 const ANIM_FRAMES = 16;
 const ANIM_FPS = 8; // 8fps = troca de frame a cada 125ms
 
 const OFUDA_VARIANTS = [
-  { idle: 'ofuda_wood_idle',  hit: 'ofuda_wood_hit',   charColor: '#3b1f08' },
-  { idle: 'ofuda_stone_idle', hit: 'ofuda_stone_idle',  charColor: '#e9d5ff' },
-  { idle: 'ofuda_blood_idle', hit: 'ofuda_blood_hit',   charColor: '#fca5a5' },
+  { idle: 'ofuda_wood_idle', hit: 'ofuda_wood_hit', charColor: '#3b1f08' },
+  { idle: 'ofuda_stone_idle', hit: 'ofuda_stone_idle', charColor: '#e9d5ff' },
+  { idle: 'ofuda_blood_idle', hit: 'ofuda_blood_hit', charColor: '#fca5a5' },
 ];
 
 // ─── Sprite cache ─────────────────────────────────────────────────────────────
@@ -30,11 +32,11 @@ function loadSprite(name) {
   spriteCache[name] = img;
   return img;
 }
-['ofuda_wood_idle','ofuda_wood_hit','ofuda_stone_idle','ofuda_blood_idle','ofuda_blood_hit']
+['ofuda_wood_idle', 'ofuda_wood_hit', 'ofuda_stone_idle', 'ofuda_blood_idle', 'ofuda_blood_hit']
   .forEach(loadSprite);
 
-const frameNames = Array.from({length: ANIM_FRAMES}, (_, i) => 
-  `sprites_ofuda/frame_${String(i).padStart(3,'0')}`
+const frameNames = Array.from({ length: ANIM_FRAMES }, (_, i) =>
+  `sprites_ofuda/frame_${String(i).padStart(3, '0')}`
 );
 frameNames.forEach(loadSprite);
 
@@ -46,15 +48,16 @@ async function ensureZpix() {
     const font = new FontFace('Zpix', 'url(/fonts/zpix.woff2)');
     await font.load();
     document.fonts.add(font);
-  } catch(_) {}
+  } catch (_) { }
   zpixLoaded = true;
 }
 
 // ─── Componente ──────────────────────────────────────────────────────────────
-const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
-  const canvasRef    = useRef(null);
+export default function SiegeMode({ hskLevel = 1, waveSize = 5, onWaveComplete }) {
+  const user = useStore(state => state.user);
+  const canvasRef = useRef(null);
   const containerRef = useRef(null);
-  const writerRef    = useRef(null);
+  const writerRef = useRef(null);
   const writerDivRef = useRef(null);
   const animFrameRef = useRef(null);
 
@@ -63,11 +66,16 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
     activeTarget: null, phase: 'loading', destroyed: 0,
   });
 
-  const [phase, setPhase]           = useState('loading');
+  const [phase, setPhase] = useState('config'); // config -> loading -> playing -> drawing -> victory
   const [activeChar, setActiveChar] = useState(null);
   const [activeHint, setActiveHint] = useState(null);
-  const [score, setScore]           = useState(0);
-  const [total, setTotal]           = useState(waveSize);
+  const [score, setScore] = useState(0);
+  const [total, setTotal] = useState(waveSize);
+  
+  // Settings
+  const [configSource, setConfigSource] = useState('known'); // 'known', 'weak', 'missing'
+  const [configHsk, setConfigHsk] = useState(hskLevel || 1);
+  const [configError, setConfigError] = useState('');
 
   // Ref para garantir que o onWaveComplete mais recente seja chamado no update loop
   const onWaveCompleteRef = useRef(onWaveComplete);
@@ -97,38 +105,57 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
     setPhase('playing');
   }
 
-  useEffect(() => {
-    ensureZpix();
-    fetch('/api/cards/1') // Hardcoded user_id 1
-      .then(r => r.json())
-      .then(data => {
-        if (data.success && data.data && data.data.length > 0) {
-          const knownCards = data.data;
-          // Embaralha e pega a quantidade da wave
-          const shuffled = knownCards.sort(() => 0.5 - Math.random());
-          const selected = shuffled.slice(0, waveSize);
-          
-          const enemiesData = selected.map((c, i) => ({
-            id: `f_${i}_${c.char}`, 
-            char: c.char, 
-            pinyin: c.pinyin || '?', 
-            meaning: c.meaning_pt || c.meaning || '?', 
-            hsk: c.hsk_level || 1,
-            speed: 0.5 + Math.random() * 0.3,
-          }));
-          spawnEnemies(enemiesData);
-        } else {
-          throw new Error('Sem cartas conhecidas');
+  const startGame = async () => {
+    if (!user) return;
+    setPhase('loading');
+    setConfigError('');
+    await ensureZpix();
+
+    try {
+      let pool = [];
+      const res = await fetch(`/api/cards/${user.id}`);
+      const data = await res.json();
+      const knownCards = (data.success && data.data) ? data.data : [];
+      const knownCharsSet = new Set(knownCards.map(c => c.char));
+
+      if (configSource === 'known') {
+        pool = knownCards;
+        if (pool.length === 0) throw new Error('Você ainda não tem caracteres na sua coleção. Adicione alguns primeiro!');
+      } else if (configSource === 'weak') {
+        pool = knownCards.filter(c => (c.srs_level || 1) <= 2);
+        if (pool.length === 0) {
+          pool = knownCards; // fallback se não houver fracos
+          if (pool.length === 0) throw new Error('Coleção vazia!');
         }
-      })
-      .catch(() => {
-        const chars = ['水','火','人','口','日','山','木','土','金','月'].slice(0, waveSize);
-        spawnEnemies(chars.map((char, i) => ({
-          id: `f_${i}`, char, pinyin: '?', meaning: '?', hsk: 1,
-          speed: 0.5 + Math.random() * 0.3,
-        })));
-      });
-  }, [hskLevel, waveSize]);
+      } else if (configSource === 'missing') {
+        const allHsk = hanziData.filter(h => h.hsk === configHsk);
+        pool = allHsk.filter(h => !knownCharsSet.has(h.id)).map(h => ({
+          char: h.id,
+          pinyin: h.pinyin,
+          meaning_pt: h.meaning,
+          hsk_level: h.hsk
+        }));
+        if (pool.length === 0) throw new Error(`Você já sabe todos os caracteres do HSK ${configHsk}!`);
+      }
+
+      const shuffled = pool.sort(() => 0.5 - Math.random());
+      const selected = shuffled.slice(0, waveSize);
+
+      const enemiesData = selected.map((c, i) => ({
+        id: `f_${i}_${c.char}`,
+        char: c.char,
+        pinyin: c.pinyin || '?',
+        meaning: c.meaning_pt || c.meaning || '?',
+        hsk: c.hsk_level || configHsk,
+        speed: 0.5 + Math.random() * 0.3,
+      }));
+      
+      spawnEnemies(enemiesData);
+    } catch (err) {
+      setConfigError(err.message);
+      setPhase('config');
+    }
+  };
 
   // ─── HanziWriter ───────────────────────────────────────────────────────────
   const initWriter = useCallback((char, onComplete) => {
@@ -136,7 +163,7 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
 
     // Limpa instância anterior
     if (writerRef.current) {
-      try { writerRef.current.cancelQuiz(); } catch(_) {}
+      try { writerRef.current.cancelQuiz(); } catch (_) { }
     }
     writerDivRef.current.innerHTML = '';
 
@@ -184,7 +211,7 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
     const state = gameState.current;
     const en = state.enemies.find(e => e.id === id);
     if (!en || en.dying || en.isBurning) return;
-    
+
     en.isBurning = true;
     en.animFrame = 0;
     en.animTimer = 0;
@@ -193,7 +220,15 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
     setScore(s => s + 1);
     state.activeTarget = null; state.phase = 'playing';
     setPhase('playing'); setActiveChar(null); setActiveHint(null);
-  }, []);
+
+    if (user?.id) {
+      fetch('/api/cards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: user.id, char: en.char, vote: 'remembered' })
+      }).catch(console.error);
+    }
+  }, [user?.id]);
 
   // ─── Targeting ─────────────────────────────────────────────────────────────
   // pendingWriter guarda char+callback até o writerDivRef estar no DOM
@@ -228,7 +263,7 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
   }, []);
 
   const cancelDrawing = useCallback(() => {
-    try { writerRef.current?.cancelQuiz(); } catch(_) {}
+    try { writerRef.current?.cancelQuiz(); } catch (_) { }
     gameState.current.phase = 'playing';
     gameState.current.activeTarget = null;
     setPhase('playing'); setActiveChar(null); setActiveHint(null);
@@ -264,19 +299,19 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
       // UPDATE
       state.enemies.forEach(en => {
         if (en.dying) { en.opacity = Math.max(0, en.opacity - 0.06); return; }
-        
+
         // Animação da morte (papel queimando)
         if (en.isBurning) {
           en.animTimer += 1;
           if (en.animTimer >= Math.round(60 / ANIM_FPS)) {
             en.animFrame += 1;
             en.animTimer = 0;
-            
+
             if (en.animFrame >= ANIM_FRAMES) {
               en.isBurning = false;
               en.dying = true;
               en.animFrame = ANIM_FRAMES - 1; // Trava no último frame pro fade-out
-              
+
               // Explosão de Partículas
               for (let i = 0; i < 20; i++) {
                 state.particles.push({
@@ -289,7 +324,7 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
                 });
               }
               state.floatingTexts.push({ x: en.x, y: en.y - 30, text: ` ${en.char}`, color: '#4ade80', life: 1.5, vy: 1.8 });
-              
+
               setTimeout(() => {
                 state.enemies = state.enemies.filter(e => e.id !== en.id);
                 if (state.enemies.length === 0) { state.phase = 'victory'; setPhase('victory'); onWaveCompleteRef.current?.(); }
@@ -330,7 +365,7 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
 
         const spriteName = (en.spriteState === 'hit' && !en.dying && !en.isBurning)
           ? en.variant.hit
-          : `sprites_ofuda/frame_${String(en.animFrame).padStart(3,'0')}`;
+          : `sprites_ofuda/frame_${String(en.animFrame).padStart(3, '0')}`;
         const sprite = spriteCache[spriteName];
 
         if (sprite?.complete && sprite.naturalWidth > 0) {
@@ -391,10 +426,69 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full"
         style={{
           cursor: phase === 'playing' ? 'crosshair' : 'default',
-          pointerEvents: phase === 'drawing' ? 'none' : 'auto',
+          pointerEvents: phase === 'drawing' || phase === 'config' ? 'none' : 'auto',
+          opacity: phase === 'config' ? 0.3 : 1,
+          transition: 'opacity 0.3s'
         }}
         onClick={handleCanvasClick}
       />
+
+      {phase === 'config' && (
+        <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/60 backdrop-blur-md">
+          <div className="bg-ink-900 border border-gold-500/30 p-8 rounded-3xl shadow-2xl max-w-sm w-full mx-4 flex flex-col gap-6" style={{ pointerEvents: 'auto' }}>
+            <div className="text-center">
+              <h2 className="text-gold-300 font-display text-2xl font-bold tracking-widest mb-1">PREPARAÇÃO</h2>
+              <p className="text-ink-400 text-xs font-body">Defina as regras do cerco</p>
+            </div>
+
+            {configError && (
+              <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs text-center">
+                {configError}
+              </div>
+            )}
+
+            <div className="flex flex-col gap-3">
+              <label className="text-xs text-ink-300 font-mono uppercase tracking-widest">Alvo da Onda</label>
+              <div className="flex flex-col gap-2">
+                <button onClick={() => setConfigSource('known')}
+                  className={`px-4 py-3 rounded-xl border text-sm text-left transition ${configSource === 'known' ? 'bg-gold-500/15 border-gold-500/50 text-gold-200' : 'bg-white/5 border-white/10 text-ink-400 hover:bg-white/10'}`}>
+                  <div className="font-bold">Geral (Tudo que já sei)</div>
+                  <div className="text-xs opacity-70 mt-0.5">Revisão geral da sua coleção</div>
+                </button>
+                <button onClick={() => setConfigSource('weak')}
+                  className={`px-4 py-3 rounded-xl border text-sm text-left transition ${configSource === 'weak' ? 'bg-vermillion-500/15 border-vermillion-500/50 text-vermillion-200' : 'bg-white/5 border-white/10 text-ink-400 hover:bg-white/10'}`}>
+                  <div className="font-bold">Pontuação Baixa</div>
+                  <div className="text-xs opacity-70 mt-0.5">Foco no que você tem dificuldade</div>
+                </button>
+                <button onClick={() => setConfigSource('missing')}
+                  className={`px-4 py-3 rounded-xl border text-sm text-left transition ${configSource === 'missing' ? 'bg-azure-500/15 border-azure-500/50 text-azure-200' : 'bg-white/5 border-white/10 text-ink-400 hover:bg-white/10'}`}>
+                  <div className="font-bold">Faltantes do HSK</div>
+                  <div className="text-xs opacity-70 mt-0.5">Aprenda novos caracteres para expandir</div>
+                </button>
+              </div>
+            </div>
+
+            {configSource === 'missing' && (
+              <div className="flex flex-col gap-2">
+                <label className="text-xs text-ink-300 font-mono uppercase tracking-widest">Nível HSK Alvo</label>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5, 6].map(lvl => (
+                    <button key={lvl} onClick={() => setConfigHsk(lvl)}
+                      className={`flex-1 py-2 rounded-lg border text-xs transition ${configHsk === lvl ? 'bg-azure-500/20 border-azure-500/50 text-azure-300' : 'bg-white/5 border-white/10 text-ink-500 hover:bg-white/10'}`}>
+                      {lvl}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <button onClick={startGame}
+              className="mt-2 w-full py-4 rounded-xl bg-gold-500 hover:bg-gold-600 text-black font-bold font-display text-lg tracking-widest transition shadow-[0_0_20px_rgba(245,158,11,0.2)]">
+              INICIAR CERCO
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
         <div className="flex items-center gap-3 bg-black/60 backdrop-blur-sm rounded-full px-4 py-1.5 border border-white/10">
@@ -447,7 +541,7 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
               onClick={cancelDrawing}
               className="flex-1 py-1.5 text-xs rounded-lg border border-red-500/40 text-red-400 hover:bg-red-500/10 transition"
             >
-               Esc
+              Esc
             </button>
           </div>
         </div>
@@ -468,6 +562,4 @@ const SiegeMode = ({ hskLevel = 1, waveSize = 5, onWaveComplete }) => {
       )}
     </div>
   );
-};
-
-export default SiegeMode;
+}

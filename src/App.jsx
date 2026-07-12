@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import useStore from './store/useStore';
+import Auth from './features/Auth.jsx';
+import LandingPage from './features/LandingPage.jsx';
 import Home from './features/Home.jsx';
 import SidebarFilters from './features/SidebarFilters';
 import GraphCanvas from './features/GraphCanvas';
@@ -35,7 +38,17 @@ const NAV = [
 ];
 
 export default function App() {
+  const user = useStore(state => state.user);
   const [mode, setMode] = useState(MODES.HOME);
+  const [showAuth, setShowAuth] = useState(false);
+
+  if (!user && !showAuth) {
+    return <LandingPage onLogin={() => setShowAuth(true)} />;
+  }
+
+  if (!user && showAuth) {
+    return <Auth />;
+  }
 
   const headerTitle = {
     [MODES.HOME]:    ['Rami',        ' Painel de Estudos'],
@@ -51,7 +64,7 @@ export default function App() {
   const [title, subtitle] = headerTitle[mode] || ['Rami', ''];
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-ink-950">
+    <div className="app-container flex flex-col h-screen overflow-hidden bg-ink-950">
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <header className="flex items-center justify-between px-6 py-3 border-b border-white/[0.08] bg-ink-900 z-20 shrink-0">
         <div className="flex items-center gap-3">

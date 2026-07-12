@@ -41,10 +41,10 @@ const VIS_OPTIONS = {
   },
   physics: {
     barnesHut: {
-      gravitationalConstant: -5000,
-      centralGravity: 0.2,
-      springLength: 120,
-      springConstant: 0.04,
+      gravitationalConstant: -15000,
+      centralGravity: 0.15,
+      springLength: 220,
+      springConstant: 0.05,
       damping: 0.2,
     },
     stabilization: { iterations: 250 },
@@ -63,11 +63,12 @@ export default function GraphCanvas() {
   const nodesDS = useRef(new DataSet());
   const edgesDS = useRef(new DataSet());
 
-  const { mode, maxHsk, context, setActiveChar, togglePhraseSelection, phraseSelection } = useStore();
+  const { mode, maxHsk, context, quickRoot, setActiveChar, togglePhraseSelection, phraseSelection, knownOnly, user } = useStore();
 
   const [radialMenu, setRadialMenu] = React.useState(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState(null);
+  const [knownCount, setKnownCount] = React.useState(0);
 
   const buildVisNode = useCallback((n) => {
     const color = HSK_NODE_COLORS[n.hsk] || HSK_NODE_COLORS[6];
@@ -91,21 +92,61 @@ export default function GraphCanvas() {
     setLoading(true);
     setError(null);
     try {
-      const { nodes, edges } = await graphApi.getGraph({ maxHsk, context, mode });
+      let { nodes, edges } = await graphApi.getGraph({ maxHsk, context, mode, quickRoot });
+
+      // Se "Meu Vocabulário" estiver ativo, filtra apenas os nós conhecidos
+      if (knownOnly && user?.id) {
+        const res = await fetch(`/api/cards/${user.id}`);
+        const data = await res.json();
+        if (data.success && data.data?.length > 0) {
+          const knownSet = new Set(data.data.map(c => c.char));
+          setKnownCount(knownSet.size);
+          nodes = nodes.filter(n => knownSet.has(n.id));
+          const activeIds = new Set(nodes.map(n => n.id));
+          edges = edges.filter(e => activeIds.has(e.from) && activeIds.has(e.to));
+        } else {
+          setKnownCount(0);
+          nodes = [];
+          edges = [];
+        }
+      } else {
+        setKnownCount(0);
+      }
+
       nodesDS.current.clear();
       edgesDS.current.clear();
       nodesDS.current.add(nodes.map(buildVisNode));
       edgesDS.current.add(edges);
-      setTimeout(() => {
-        networkRef.current?.fit({ animation: { duration: 700, easingFunction: 'easeInOutQuad' } });
-      }, 300);
+      
+      if (networkRef.current) {
+        let focused = false;
+        const handleFocus = () => {
+          if (focused || !networkRef.current) return;
+          focused = true;
+          if (quickRoot && nodes.some(n => n.id === quickRoot)) {
+            try {
+              networkRef.current.focus(quickRoot, {
+                scale: 1.2,
+                animation: { duration: 700, easingFunction: 'easeInOutQuad' }
+              });
+            } catch (err) { /* Ignorar erros assíncronos do vis-network no console */ }
+          } else {
+            networkRef.current.fit({
+              animation: { duration: 700, easingFunction: 'easeInOutQuad' }
+            });
+          }
+        };
+        
+        networkRef.current.once('stabilizationIterationsDone', handleFocus);
+        setTimeout(handleFocus, 600); // Fallback
+      }
     } catch (err) {
       console.error('Failed to load graph:', err);
       setError('Erro ao carregar o grafo. Verifique a conexão.');
     } finally {
       setLoading(false);
     }
-  }, [maxHsk, context, mode, buildVisNode]);
+  }, [maxHsk, context, mode, quickRoot, knownOnly, user?.id, buildVisNode]);
 
   // Initialize network once
   useEffect(() => {
@@ -189,6 +230,23 @@ export default function GraphCanvas() {
           {error}
         </div>
       )}
+
+      {/* Meu Vocabulário badge */}
+      {knownOnly && !loading && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-jade-500/10 border border-jade-500/30 text-jade-300 text-xs font-mono px-4 py-2 rounded-full backdrop-blur-sm">
+          <div className="w-1.5 h-1.5 rounded-full bg-jade-400 animate-pulse" />
+          Meu Vocabulário · {knownCount} caracteres
+        </div>
+      )}
+
+      {/* Raiz Rápida badge */}
+      {quickRoot && !loading && (
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-azure-500/10 border border-azure-500/30 text-azure-300 text-xs font-mono px-4 py-2 rounded-full backdrop-blur-sm">
+          <div className="w-1.5 h-1.5 rounded-full bg-azure-400 animate-pulse" />
+          Raiz Rápida: {quickRoot}
+        </div>
+      )}
+
 
       {/* Radial menu overlay */}
       {radialMenu && (

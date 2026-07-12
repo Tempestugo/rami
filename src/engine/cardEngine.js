@@ -8,11 +8,11 @@
 // ─── Tabelas de escala ────────────────────────────────────────────────────────
 
 export const LEVEL_SCALE = {
-  1: { damageMulti: 1.0,  ricochetTargets: 0, aura: false, secondaryEffect: false },
-  2: { damageMulti: 1.1,  ricochetTargets: 0, aura: true,  secondaryEffect: false },
-  3: { damageMulti: 1.1,  ricochetTargets: 1, aura: true,  secondaryEffect: false },
-  4: { damageMulti: 1.2,  ricochetTargets: 2, aura: true,  secondaryEffect: true  },
-  5: { damageMulti: 1.4,  ricochetTargets: Infinity, aura: true, secondaryEffect: true },
+  1: { damageMulti: 1.0,  ricochetTargets: 0, pierce: 0, aura: false, secondaryEffect: false },
+  2: { damageMulti: 1.1,  ricochetTargets: 0, pierce: 1, aura: true,  secondaryEffect: false },
+  3: { damageMulti: 1.1,  ricochetTargets: 1, pierce: 1, aura: true,  secondaryEffect: false },
+  4: { damageMulti: 1.2,  ricochetTargets: 2, pierce: 2, aura: true,  secondaryEffect: true  },
+  5: { damageMulti: 1.4,  ricochetTargets: Infinity, pierce: Infinity, aura: true, secondaryEffect: true },
 };
 
 export const FAMILY_EFFECTS = {
@@ -92,6 +92,14 @@ export function resolveAttack(card, primaryTarget, nearbyEnemies = [], deckCards
 
   // Dano no alvo primário
   hits.push({ targetId: primaryTarget.id, damage, type: 'primary', family: card.family });
+
+  // Pierce
+  if (scale.pierce > 0) {
+    const pTargets = scale.pierce === Infinity ? nearbyEnemies : nearbyEnemies.slice(0, scale.pierce);
+    pTargets.forEach(enemy => {
+      hits.push({ targetId: enemy.id, damage: damage, type: 'pierce', family: card.family });
+    });
+  }
 
   // Ricochete
   if (scale.ricochetTargets > 0) {

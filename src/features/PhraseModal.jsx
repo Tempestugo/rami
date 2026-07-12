@@ -1,5 +1,6 @@
 import React from 'react';
 import useStore from '../store/useStore';
+import AutoTranslate from '../components/AutoTranslate';
 
 export default function PhraseModal() {
   const { isPhraseModalOpen, setIsPhraseModalOpen, phraseResults, phraseSelection, clearPhraseResults, clearPhraseSelection } = useStore();
@@ -69,7 +70,7 @@ export default function PhraseModal() {
                 </div>
 
                 <div className="text-ink-300 text-sm">
-                  {result.translation}
+                  <AutoTranslate text={result.translation} />
                 </div>
 
                 <div className="flex gap-1.5 flex-wrap mt-1">

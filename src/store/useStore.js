@@ -2,14 +2,21 @@ import { create } from 'zustand';
 
 const useStore = create((set, get) => ({
   // === GRAPH CONTROLS ===
-  mode: 'evo',       // 'dag' | 'evo' | 'sim'
+  mode: 'evo',       // 'evo' | 'sim'
   maxHsk: 6,
   context: null,     // e.g. 'cozinha' or null
+  quickRoot: null,   // e.g. '一' or null
+  knownOnly: false,  // show only user's known cards in the graph
+  initialPracticeType: null,
 
   setMode: (mode) => set({ mode }),
   setMaxHsk: (maxHsk) => set({ maxHsk }),
-  setContext: (context) => set({ context }),
+  setContext: (context) => set({ context, quickRoot: null }),
   clearContext: () => set({ context: null }),
+  setQuickRoot: (root) => set({ quickRoot: root, context: null }),
+  clearQuickRoot: () => set({ quickRoot: null }),
+  setKnownOnly: (knownOnly) => set({ knownOnly }),
+  setInitialPracticeType: (type) => set({ initialPracticeType: type }),
 
   // === ACTIVE CHARACTER (details panel) ===
   activeChar: null,
@@ -37,6 +44,17 @@ const useStore = create((set, get) => ({
   // === UI STATE ===
   isPhraseModalOpen: false,
   setIsPhraseModalOpen: (open) => set({ isPhraseModalOpen: open }),
+
+  // === AUTH STATE ===
+  user: JSON.parse(localStorage.getItem('rami_user') || 'null'),
+  login: (userData) => {
+    localStorage.setItem('rami_user', JSON.stringify(userData));
+    set({ user: userData });
+  },
+  logout: () => {
+    localStorage.removeItem('rami_user');
+    set({ user: null });
+  },
 }));
 
 export default useStore;

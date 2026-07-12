@@ -9,9 +9,10 @@ import axios from 'axios';
 const BASE = '/api';
 
 export const graphApi = {
-  getGraph: ({ maxHsk = 6, context = null, mode = 'evo' } = {}) => {
+  getGraph: ({ maxHsk = 6, context = null, mode = 'evo', quickRoot = null } = {}) => {
     const params = { maxHsk, mode };
     if (context) params.context = context;
+    if (quickRoot) params.quickRoot = quickRoot;
     return axios.get(`${BASE}/graph`, { params }).then(r => r.data.data);
   },
 

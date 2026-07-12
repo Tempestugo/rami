@@ -12,6 +12,7 @@ export default defineConfig({
   },
   server: {
     proxy: {
+      '/api/auth': 'http://127.0.0.1:3000',
       '/api/cards': 'http://127.0.0.1:3000',
       '/api/phrases': 'http://127.0.0.1:3000',
       '/api/phrase': 'http://127.0.0.1:3000',

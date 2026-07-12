@@ -10,10 +10,16 @@ export default function ContextImage({ term }) {
     const fetchImage = async () => {
       setLoading(true);
       try {
-        // Busca o sumário da página na Wikipedia pelo termo (ex: "water", "mountain")
+        // Busca o sumário da página na Wikipedia pelo termo limpo (ex: "water")
+        const cleanTerm = term.split(/[,;]/)[0].trim().toLowerCase();
         const res = await fetch(
-          `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(term)}`
+          `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(cleanTerm)}`
         );
+        
+        if (!res.ok) {
+          throw new Error('Não encontrado');
+        }
+        
         const data = await res.json();
         
         if (data.thumbnail && data.thumbnail.source) {
@@ -22,7 +28,7 @@ export default function ContextImage({ term }) {
           setImageUrl(null);
         }
       } catch (err) {
-        console.error("Erro ao buscar imagem da Wikipedia:", err);
+        // Silenciado para não assustar no console quando não houver imagem
         setImageUrl(null);
       } finally {
         setLoading(false);

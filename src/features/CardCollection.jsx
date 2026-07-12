@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import useStore from '../store/useStore';
 import { hanziData } from '@/data/hanziData.js';
 import HanziCard from './HanziCard.jsx';
 
@@ -17,6 +18,7 @@ function normalize(str) {
 }
 
 export default function CardCollection() {
+  const user = useStore(state => state.user);
   const [knownCards, setKnownCards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -30,7 +32,7 @@ export default function CardCollection() {
       const res = await fetch('/api/cards', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: 1, char, srs_level: 1 })
+        body: JSON.stringify({ user_id: user?.id, char, srs_level: 1 })
       });
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}`);
@@ -38,7 +40,7 @@ export default function CardCollection() {
       const data = await res.json();
       if (data.success) {
         // Recarrega as cartas conhecidas
-        fetch('/api/cards/1')
+        fetch(`/api/cards/${user?.id}`)
           .then(res => {
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             return res.json();
@@ -64,8 +66,9 @@ export default function CardCollection() {
   };
 
   const loadKnownCards = useCallback(() => {
+    if (!user) return;
     setLoading(true);
-    fetch('/api/cards/1')
+    fetch(`/api/cards/${user.id}`)
       .then(res => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();

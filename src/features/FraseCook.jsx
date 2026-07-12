@@ -12,6 +12,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { phraseData } from '@/data/phraseData.js';
+import AutoTranslate from '../components/AutoTranslate';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -301,7 +302,7 @@ export default function FraseCook({ initialHsk = 1, initialContext = null }) {
               <div className={`text-xs font-body tracking-wide transition-all duration-300 ${
                 isSolved || isHinted ? 'text-ink-400 opacity-100' : 'opacity-0 h-0 overflow-hidden'
               }`}>
-                {phrase.translation}
+                <AutoTranslate text={phrase.translation} />
               </div>
             </div>
           );

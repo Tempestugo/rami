@@ -151,13 +151,9 @@ async function run() {
   console.log(` Shuffling and selecting sentences to merge...`);
   const shuffledCandidates = candidates.sort(() => 0.5 - Math.random());
 
-  // Cap total phrases to 15,000
-  const maxTotal = 15000;
-  const needToAdd = Math.max(0, maxTotal - originalPhrases.length);
-  const selectedCandidates = shuffledCandidates.slice(0, needToAdd);
-
-  console.log(` Merging ${selectedCandidates.length} new phrases into existing bank (Total cap: ${maxTotal})...`);
-  const mergedPhrases = [...originalPhrases, ...selectedCandidates];
+  // Keep all valid candidates
+  console.log(` Merging ${shuffledCandidates.length} new phrases into existing bank (No limit)...`);
+  const mergedPhrases = [...originalPhrases, ...shuffledCandidates];
 
   // Group or sort merged phrases by HSK level (ascending) and then by phrase length
   mergedPhrases.sort((a, b) => {
@@ -185,9 +181,29 @@ async function run() {
 export const phraseData = ${JSON.stringify(mergedPhrases, null, 2)};
 `;
 
+  // --- Inverted Index Generation ---
+  console.log(` Building Inverted Index...`);
+  const INDEX_FILE = path.join(__dirname, '../_data/phraseIndex.js');
+  const invertedIndex = {};
+  mergedPhrases.forEach((phraseObj, index) => {
+    phraseObj.chars.forEach(char => {
+      if (!invertedIndex[char]) invertedIndex[char] = [];
+      invertedIndex[char].push(index);
+    });
+  });
+  
+  const indexContent = `/**
+ * phraseIndex.js — Inverted index for fast phrase lookups.
+ * Atualizado automaticamente via script de importação de frases.
+ */
+
+export const phraseIndex = ${JSON.stringify(invertedIndex)};
+`;
+
   try {
     fs.writeFileSync(TARGET_FILE, fileContent, 'utf-8');
-    console.log(` Successfully updated phraseData.js with ${mergedPhrases.length} total phrases!`);
+    fs.writeFileSync(INDEX_FILE, indexContent, 'utf-8');
+    console.log(` Successfully updated phraseData.js and phraseIndex.js with ${mergedPhrases.length} total phrases!`);
   } catch (err) {
     console.error(` Error writing phraseData.js:`, err.message);
     process.exit(1);

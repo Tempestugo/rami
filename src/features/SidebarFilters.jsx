@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import useStore from '../store/useStore';
+import { graphApi } from '../services/api';
 
 const MODES = [
   { value: 'evo', label: 'Evolução', sub: 'Radical → Palavras Derivadas', icon: '' },
-  { value: 'dag', label: 'Analítico', sub: 'Palavra → Radicais Componentes', icon: '' },
   { value: 'sim', label: 'Similaridade', sub: 'Forma Visual (+1 Traço)', icon: '️' },
 ];
 
@@ -30,8 +30,22 @@ const HSK_COLORS = {
 };
 
 export default function SidebarFilters() {
-  const { mode, maxHsk, context, setMode, setMaxHsk, setContext, clearContext } = useStore();
+  const { mode, maxHsk, context, quickRoot, setMode, setMaxHsk, setContext, clearContext, setQuickRoot, clearQuickRoot, knownOnly, setKnownOnly, setActiveChar } = useStore();
   const [isOpen, setIsOpen] = useState(false);
+
+  const handleToggleRoot = async (char) => {
+    if (quickRoot === char) {
+      clearQuickRoot();
+    } else {
+      setQuickRoot(char);
+      try {
+        const data = await graphApi.getCharacter(char);
+        if (data) setActiveChar(data);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
 
   return (
     <>
@@ -61,6 +75,30 @@ export default function SidebarFilters() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
+
+        {/* Meu Vocabulário toggle */}
+        <div>
+          <p className="text-xs font-semibold text-ink-400 uppercase tracking-widest mb-3">
+            Visualização
+          </p>
+          <button
+            onClick={() => setKnownOnly(!knownOnly)}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all duration-200 border
+              ${knownOnly
+                ? 'bg-jade-500/15 border-jade-500/40 text-jade-200'
+                : 'bg-transparent border-white/5 text-ink-400 hover:bg-white/5 hover:text-ink-200'
+              }`}
+          >
+            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0
+              ${knownOnly ? 'border-jade-400 bg-jade-500' : 'border-ink-500 bg-transparent'}`}>
+              {knownOnly && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+            </div>
+            <div>
+              <div className="text-sm font-semibold leading-tight">Meu Vocabulário</div>
+              <div className="text-xs text-ink-400 mt-0.5 leading-tight">Somente cartas que você conhece</div>
+            </div>
+          </button>
+        </div>
 
         {/* Mode selector */}
         <div>
@@ -152,27 +190,35 @@ export default function SidebarFilters() {
           </p>
         </div>
 
-        {/* Quick root pins */}
-        <div>
-          <p className="text-xs font-semibold text-ink-400 uppercase tracking-widest mb-3">
-            Raízes Rápidas
-          </p>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-semibold text-ink-400 uppercase tracking-widest">
+              Raízes Rápidas
+            </p>
+            {quickRoot && (
+              <button
+                onClick={clearQuickRoot}
+                className="text-xs text-vermillion-400 hover:text-vermillion-300 transition-colors"
+              >
+                Limpar
+              </button>
+            )}
+          </div>
           <div className="flex gap-2 flex-wrap">
-            {['一', '人', '木', '口', '水', '火', '日', '女'].map(char => (
+            {['一', '人', '木', '口', '水', '火', '日', '女', '心', '手', '言', '糸', '土', '金', '竹', '月', '目', '石', '田', '虫'].map(char => (
               <button
                 key={char}
-                className="w-10 h-10 rounded-lg bg-ink-800 border border-white/10
-                           font-display text-lg text-ink-100 hover:border-vermillion-500/50
-                           hover:bg-vermillion-500/10 hover:text-vermillion-300
-                           transition-all duration-150 flex items-center justify-center"
-                title={`Focar em ${char}`}
+                onClick={() => handleToggleRoot(char)}
+                className={`w-10 h-10 rounded-lg border font-display text-lg transition-all duration-150 flex items-center justify-center
+                  ${quickRoot === char
+                    ? 'bg-azure-500/20 border-azure-500/50 text-azure-300 shadow-[0_0_10px_rgba(59,130,246,0.2)]'
+                    : 'bg-ink-800 border-white/10 text-ink-100 hover:border-vermillion-500/50 hover:bg-vermillion-500/10 hover:text-vermillion-300'
+                  }`}
+                title={`Explorar ${char}`}
               >
                 {char}
               </button>
             ))}
           </div>
-        </div>
-
       </div>
       </aside>
     </>

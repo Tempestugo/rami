@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import HanziWriter from 'hanzi-writer';
 import { hanziData } from '@/data/hanziData.js';
 import { grammarData } from '@/data/grammarData.js';
+import useStore from '@/store/useStore';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -533,6 +534,7 @@ export default function Home({ onNavigate }) {
     try { return JSON.parse(localStorage.getItem('rami_daily_done') || '{}'); }
     catch { return {}; }
   });
+  const setInitialPracticeType = useStore(state => state.setInitialPracticeType);
 
   // Carrega cartas conhecidas
   const loadCards = useCallback(() => {
@@ -722,7 +724,11 @@ export default function Home({ onNavigate }) {
       bg: 'bg-red-500/5',
       btnColor: 'bg-red-500/15 border-red-400/50 text-red-300 hover:bg-red-500/25',
       count: srsReviewCount,
-      action: () => { onNavigate('learn'); markDone('srs'); },
+      action: () => { 
+        setInitialPracticeType('pinyin');
+        onNavigate('learn'); 
+        markDone('srs'); 
+      },
       cta: 'Iniciar Revisão →',
     },
     {
@@ -759,6 +765,7 @@ export default function Home({ onNavigate }) {
       btnColor: 'bg-jade-500/15 border-jade-400/50 text-jade-300 hover:bg-jade-500/25',
       count: knownCards.length,
       action: () => { 
+        setInitialPracticeType('drawing');
         onNavigate('learn'); 
         markDone('practice'); 
       },
@@ -877,8 +884,8 @@ export default function Home({ onNavigate }) {
                   }`}
                 >
                   <div className={`w-7 h-7 rounded-full flex items-center justify-center font-display text-xs font-bold border transition-all ${
-                    isFullyDone
-                      ? 'bg-jade-500/20 border-jade-500 text-jade-300'
+                    isSelected
+                      ? 'border-azure-500 text-azure-300 font-extrabold'
                       : isToday
                         ? 'border-azure-400 text-azure-300 font-extrabold'
                         : 'border-white/10 text-ink-300'
@@ -1022,9 +1029,12 @@ export default function Home({ onNavigate }) {
                   key={p.key}
                   className={`relative flex flex-col gap-3 p-5 rounded-2xl bg-ink-900 border transition-all duration-200 ${p.color} ${isDone(p.key) ? 'opacity-60' : ''}`}
                 >
-                  {isDone(p.key) && (
-                    <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-jade-500/20 border border-jade-500/40 flex items-center justify-center">
-                      <span className="text-jade-400 text-xs"></span>
+                  {isDone(p.key) ? (
+                    <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-jade-500 border border-jade-400 flex items-center justify-center shadow-[0_0_8px_rgba(16,185,129,0.4)]">
+                      <span className="text-white text-xs font-bold">✓</span>
+                    </div>
+                  ) : (
+                    <div className="absolute top-3 right-3 w-6 h-6 rounded-full border border-white/10 flex items-center justify-center">
                     </div>
                   )}
                   <div className="flex items-center gap-2">

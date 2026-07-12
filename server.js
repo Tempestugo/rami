@@ -2,19 +2,32 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
+import crypto from 'crypto';
 
 // === HOSTINGER AUTO-BUILD HOOK ===
 // Isso permite que a Hostinger compile o React automaticamente ao iniciar o Node.
 if (process.env.NODE_ENV !== 'development' && !process.argv.includes('--no-build')) {
-  console.log('📦 Iniciando build do Frontend automaticamente...');
+  console.log('📦 Iniciando deploy completo da Hostinger...');
   try {
-    // Corrige permissões do esbuild (comum em hospedagem compartilhada)
-    execSync('chmod +x node_modules/.bin/* node_modules/@esbuild/linux-x64/bin/esbuild || true', { stdio: 'inherit' });
-    // Executa o build do Vite
-    execSync('npm run build', { stdio: 'inherit' });
-    console.log('✅ Build do Frontend concluído com sucesso!');
+    // Adiciona o Node.js 18 da Hostinger no PATH
+    const env = { ...process.env, PATH: `/opt/alt/alt-nodejs18/root/usr/bin:${process.env.PATH}` };
+    const options = { stdio: 'inherit', env };
+
+    console.log('1/4 - Instalando dependências...');
+    execSync('/opt/alt/alt-nodejs18/root/usr/bin/npm install --ignore-scripts', options);
+    
+    console.log('2/4 - Corrigindo permissões...');
+    execSync('chmod +x node_modules/.bin/* node_modules/@esbuild/linux-x64/bin/esbuild || true', options);
+    
+    console.log('3/4 - Compilando o Frontend...');
+    execSync('npm run build', options);
+    
+    console.log('4/4 - Rodando fix-deploy.sh...');
+    try { execSync('bash ~/fix-deploy.sh', options); } catch(e) { /* Ignora se o arquivo não existir */ }
+    
+    console.log('✅ Deploy automático concluído com sucesso!');
   } catch (err) {
-    console.error('⚠️ Erro no build automático (pode ignorar se o app funcionar):', err.message);
+    console.error('⚠️ Erro no deploy automático:', err.message);
   }
 }
 
@@ -140,6 +153,50 @@ const __dirname  = path.dirname(__filename);
 const app = express();
 app.use(express.json());
 
+// --- SISTEMA DE AUTENTICAÇÃO ---
+function hashPassword(password) {
+  return crypto.createHash('sha256').update(password).digest('hex');
+}
+
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password) return res.status(400).json({ error: 'Usuário e senha obrigatórios.' });
+    
+    const hash = hashPassword(password);
+    const [result] = await pool.query(
+      'INSERT INTO users (username, password_hash) VALUES (?, ?)',
+      [username, hash]
+    );
+    res.json({ success: true, user: { id: result.insertId, username } });
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') {
+      res.status(400).json({ error: 'Nome de usuário já existe.' });
+    } else {
+      res.status(500).json({ error: err.message });
+    }
+  }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    const hash = hashPassword(password);
+    const [rows] = await pool.query(
+      'SELECT id, username FROM users WHERE username = ? AND password_hash = ?',
+      [username, hash]
+    );
+    if (rows.length === 0) {
+      res.status(401).json({ error: 'Usuário ou senha incorretos.' });
+    } else {
+      res.json({ success: true, user: rows[0] });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
 app.get('/api/graph', graphHandler);
 app.get('/api/graph/character/:id', (req, res) => {
   req.query    = req.query || {};
@@ -148,6 +205,32 @@ app.get('/api/graph/character/:id', (req, res) => {
 });
 app.post('/api/phrases/build', phraseHandler);
 app.get('/api/phrase', phraseHandler);
+
+app.post('/api/phrases/validate', async (req, res) => {
+  try {
+    const { phrase } = req.body;
+    if (!phrase || phrase.length < 2) {
+      return res.json({ valid: false, reason: 'Frase muito curta.' });
+    }
+    
+    // Validar usando as sentenças do currículo
+    const sentences = await listSentences();
+    
+    // Verifica se a frase exata existe como uma palavra nas sentenças
+    const isWord = sentences.some(s => s.words && s.words.some(w => w.hanzi === phrase));
+    // Ou se existe como um fragmento válido dentro de uma sentença maior
+    const isFragment = sentences.some(s => s.hanzi && s.hanzi.includes(phrase));
+    
+    if (isWord || isFragment) {
+      return res.json({ valid: true });
+    }
+    
+    return res.json({ valid: false, reason: 'Frase não encontrada no currículo atual.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/characters', (req, res) => {
   try {
     const data = hanziData.map(h => {
@@ -376,6 +459,24 @@ async function initializeDatabase() {
   await dbReady;
   try {
     console.log(' Inicializando tabelas do banco de dados...');
+    
+    // Tabela de Usuários
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(50) UNIQUE NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
+    // Inserir usuário base (ID 1) se não existir (Mantendo o progresso atual)
+    const defaultHash = hashPassword('123456');
+    await pool.query(
+      `INSERT IGNORE INTO users (id, username, password_hash) VALUES (?, ?, ?)`,
+      [1, 'Rami', defaultHash]
+    );
+
     await pool.query(`
       CREATE TABLE IF NOT EXISTS progress (
         id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
