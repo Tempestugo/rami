@@ -2,6 +2,7 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
+import { exec } from 'child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
@@ -127,6 +128,207 @@ function enrichCharacterData(char) {
 
 const app = express();
 app.use(express.json());
+
+// --- SISTEMA DE AUTO-BUILD EM SEGUNDO PLANO (Prevenção de Timeout 503 na Hostinger) ---
+let isBuilding = false;
+let buildLog = '';
+let buildError = null;
+
+const noBuildFlag = process.argv.includes('--no-build');
+const shouldBuild = !noBuildFlag && (process.env.NODE_ENV === 'production' || process.env.PORT);
+
+if (shouldBuild) {
+  isBuilding = true;
+  console.log('[Autobuild] Iniciando build do frontend em segundo plano...');
+  
+  const buildProcess = exec('bash hostinger-deploy.sh', {
+    cwd: __dirname,
+    env: { ...process.env, PATH: `/opt/alt/alt-nodejs18/root/usr/bin:${process.env.PATH}` }
+  });
+
+  buildProcess.stdout.on('data', (data) => {
+    buildLog += data;
+    console.log(`[Autobuild] ${data.trim()}`);
+  });
+
+  buildProcess.stderr.on('data', (data) => {
+    buildLog += data;
+    console.error(`[Autobuild Error] ${data.trim()}`);
+  });
+
+  buildProcess.on('close', (code) => {
+    isBuilding = false;
+    if (code === 0) {
+      console.log('[Autobuild] Build concluído com sucesso!');
+    } else {
+      buildError = `Build falhou com código de saída ${code}`;
+      console.error(`[Autobuild] ${buildError}`);
+    }
+  });
+}
+
+// Middleware de Interceptação para Atualizações / Compilação
+app.use((req, res, next) => {
+  if (isBuilding) {
+    if (req.path === '/api/deploy-status') {
+      return res.json({ status: 'building', log: buildLog });
+    }
+    
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return res.send(`
+      <!DOCTYPE html>
+      <html lang="pt-BR">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Atualizando Rami Mandirim</title>
+        <style>
+          body {
+            background-color: #0b0c10;
+            color: #c5c6c7;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+          }
+          .card {
+            background: #1f2833;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+          }
+          h1 {
+            color: #ffb703;
+            font-size: 22px;
+            margin-bottom: 10px;
+          }
+          p {
+            font-size: 14px;
+            color: #95a5a6;
+            margin-bottom: 25px;
+            line-height: 1.5;
+          }
+          .spinner {
+            border: 3px solid rgba(255,255,255,0.1);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border-left-color: #ffb703;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px auto;
+          }
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          .progress-bar-container {
+            background: #0b0c10;
+            border-radius: 8px;
+            height: 6px;
+            overflow: hidden;
+            width: 100%;
+            margin-bottom: 15px;
+          }
+          .progress-bar {
+            background: #ffb703;
+            height: 100%;
+            width: 45%;
+            animation: loading-bar 2s ease-in-out infinite;
+          }
+          @keyframes loading-bar {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(250%); }
+          }
+          pre {
+            text-align: left;
+            background: #0b0c10;
+            color: #39c0c0;
+            font-family: monospace;
+            font-size: 11px;
+            padding: 15px;
+            border-radius: 8px;
+            max-height: 150px;
+            overflow-y: auto;
+            border: 1px solid rgba(255,255,255,0.05);
+            margin-top: 20px;
+            white-space: pre-wrap;
+            word-break: break-all;
+          }
+        </style>
+        <script>
+          setInterval(() => {
+            fetch('/api/deploy-status')
+              .then(r => r.json())
+              .then(data => {
+                if (data.status !== 'building') {
+                  window.location.reload();
+                } else {
+                  const logEl = document.getElementById('log');
+                  if (logEl) {
+                    logEl.textContent = data.log;
+                    logEl.scrollTop = logEl.scrollHeight;
+                  }
+                }
+              })
+              .catch(() => {});
+          }, 2000);
+        </script>
+      </head>
+      <body>
+        <div class="card">
+          <div class="spinner"></div>
+          <h1>Instalando Atualizações</h1>
+          <p>Estamos compilando o frontend com as alterações do repositório. Esse processo evita o timeout 503 do servidor e concluirá em instantes.</p>
+          <div class="progress-bar-container">
+            <div class="progress-bar"></div>
+          </div>
+          <div style="font-size: 11px; color: #7f8c8d;">O site carregará sozinho ao terminar.</div>
+          <pre id="log">${buildLog || 'Aguardando início...'}</pre>
+        </div>
+      </body>
+      </html>
+    `);
+  }
+
+  if (buildError) {
+    if (req.path === '/api/deploy-status') {
+      return res.json({ status: 'error', log: buildLog });
+    }
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return res.status(500).send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Erro de Atualização</title>
+        <style>
+          body { background: #0b0c10; color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+          .card { background: #1f2833; padding: 30px; border-radius: 12px; max-width: 600px; border: 1px solid #ff4444; }
+          h1 { color: #ff4444; }
+          pre { background: #000; padding: 15px; border-radius: 6px; overflow-x: auto; color: #ff5555; font-size: 12px; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <h1>Falha no Build Automático</h1>
+          <p>Ocorreu um erro ao rodar o comando de deploy. Verifique os logs abaixo:</p>
+          <pre>${buildLog}</pre>
+        </div>
+      </body>
+      </html>
+    `);
+  }
+
+  next();
+});
 
 // --- CORS para produção ---
 app.use((req, res, next) => {
@@ -677,6 +879,7 @@ async function initializeDatabase() {
 }
 
 const PORT = process.env.PORT || 3000;
-initializeDatabase().then(() => {
-  app.listen(PORT, () => console.log(`Lumi Server na porta ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Lumi Server na porta ${PORT}`);
+  initializeDatabase();
 });
