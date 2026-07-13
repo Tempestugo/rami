@@ -23,6 +23,7 @@ import SiegeMode from './features/SiegeMode';
 import CardCollection from './features/CardCollection.jsx';
 import FraseCook from './features/FraseCook';
 import UserProfile from './features/UserProfile.jsx';
+import AdminPanel from './features/AdminPanel.jsx';
 
 const MODES = {
   HOME:    'home',
@@ -33,6 +34,7 @@ const MODES = {
   CARDS:   'cards', // Novo modo
   WARFARE: 'warfare',
   USER:    'user',
+  ADMIN:   'admin',
 };
 
 const NAV = [
@@ -68,6 +70,7 @@ export default function App() {
     [MODES.CARDS]:   ['Minhas Cartas',' Coleção de Ideogramas'],
     [MODES.WARFARE]: ['Lumi Warfare','️ Campo de Batalha'],
     [MODES.USER]:    ['Usuário',     ' Perfil e Configurações'],
+    [MODES.ADMIN]:   ['Admin',       ' Painel de Controle'],
   };
 
   const [title, subtitle] = headerTitle[mode] || ['Rami', ''];
@@ -86,7 +89,7 @@ export default function App() {
         </div>
 
         <nav className="flex items-center gap-1.5 overflow-x-auto whitespace-nowrap pb-1 md:pb-0 scrollbar-thin scrollbar-thumb-white/10 w-full md:w-auto">
-          {NAV.map(({ key, label, icon }) => (
+          {(user?.username === 'Rami' ? [...NAV, { key: MODES.ADMIN, label: 'Admin', icon: '⚙️' }] : NAV).map(({ key, label, icon }) => (
             <button
               key={key}
               onClick={() => setMode(key)}
@@ -99,6 +102,7 @@ export default function App() {
                   : key === MODES.FRASE   ? 'bg-gold-500/10 border-gold-400 text-gold-300'
                   : key === MODES.SIEGE   ? 'bg-gold-500/10 border-gold-400 text-gold-300'
                   : key === MODES.USER    ? 'bg-vermillion-500/15 border-vermillion-500/60 text-vermillion-300'
+                  : key === MODES.ADMIN   ? 'bg-azure-500/15 border-azure-400 text-azure-300'
                   :                         'bg-vermillion-500/10 border-vermillion-500 text-vermillion-400'
                   : 'bg-white/5 border-white/10 text-ink-400 hover:bg-white/8 hover:text-ink-200'
               }`}
@@ -118,6 +122,10 @@ export default function App() {
 
       {mode === MODES.USER && (
         <UserProfile />
+      )}
+
+      {mode === MODES.ADMIN && user?.username === 'Rami' && (
+        <AdminPanel />
       )}
 
       {mode === MODES.LEARN && (

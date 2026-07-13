@@ -12,17 +12,7 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api/auth': 'http://127.0.0.1:3000',
-      '/api/cards': 'http://127.0.0.1:3000',
-      '/api/phrases': 'http://127.0.0.1:3000',
-      '/api/phrase': 'http://127.0.0.1:3000',
-      '/api/lesson': 'http://127.0.0.1:3000',
-      '/api/progress': 'http://127.0.0.1:3000',
-      '/api/deck': 'http://127.0.0.1:3000',
-      '/api/characters': 'http://127.0.0.1:3000',
-      '/api/graph': 'http://127.0.0.1:3000',
-      '/api/game': 'http://127.0.0.1:3000',
-      '/api/translate': 'http://127.0.0.1:3000',
+      '/api': 'http://127.0.0.1:3000',
     }
   },
   optimizeDeps: { 

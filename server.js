@@ -782,6 +782,35 @@ app.post('/api/activity/:userId', async (req, res) => {
   }
 });
 
+app.get('/api/admin/users', async (req, res) => {
+  try {
+    const adminUser = req.headers['x-admin-user'];
+    if (adminUser !== 'Rami') {
+      return res.status(403).json({ success: false, error: 'Acesso negado' });
+    }
+
+    const [rows] = await pool.query(`
+      SELECT 
+        u.id, 
+        u.username, 
+        u.created_at,
+        COALESCE(ua.streak_count, 0) as streak_count,
+        COALESCE(ua.arena_score, 0) as arena_score,
+        (SELECT COUNT(*) FROM user_cards uc WHERE uc.user_id = u.id) as cards_count,
+        (SELECT COUNT(*) FROM user_deck ud WHERE ud.user_id = u.id) as deck_count,
+        (SELECT COUNT(*) FROM progress p WHERE p.user_id = u.id) as progress_count
+      FROM users u
+      LEFT JOIN user_activity ua ON ua.user_id = u.id
+      ORDER BY u.created_at DESC
+    `);
+
+    res.json({ success: true, data: rows });
+  } catch (err) {
+    console.error('Erro no painel admin:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.use(express.static(path.join(__dirname, 'dist')));
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
