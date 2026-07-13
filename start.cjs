@@ -5,7 +5,7 @@ try {
   const d = '/home/u556180082/domains/ramimandirim.com.br/public_html/.builds/config';
   fs.mkdirSync(d, { recursive: true });
   fs.writeFileSync(d + '/preload-timestamp.cjs', '// preload');
-  try { fs.unlinkSync(d + '/preload-timestamp.js'); } catch(e) {}
+  fs.writeFileSync(d + '/preload-timestamp.js', '// preload');
   const p = d + '/package.json';
   try {
     let pkg = JSON.parse(fs.readFileSync(p, 'utf8'));

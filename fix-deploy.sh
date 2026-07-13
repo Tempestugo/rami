@@ -22,7 +22,7 @@ HTEOF
 echo "=== Corrigindo preload ==="
 mkdir -p $PRELOAD_DIR
 echo "// preload" > $PRELOAD_DIR/preload-timestamp.cjs
-rm -f $PRELOAD_DIR/preload-timestamp.js
+echo "// preload" > $PRELOAD_DIR/preload-timestamp.js
 
 echo "=== Corrigindo type:module ==="
 /opt/alt/alt-nodejs18/root/usr/bin/node -e "
