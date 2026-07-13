@@ -14,7 +14,7 @@ try {
   } catch(e) {}
 } catch(e) {}
 
-import('./server_real.js').catch(err => {
-  console.error('Erro fatal ao importar server_real.js:', err);
+import('./server.js').catch(err => {
+  console.error('Erro fatal ao importar server.js:', err);
   process.exit(1);
 });

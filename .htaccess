@@ -1,4 +1,4 @@
 PassengerNodejs /opt/alt/alt-nodejs18/root/usr/bin/node
-PassengerStartupFile server.js
+PassengerStartupFile start.cjs
 PassengerAppType node
 PassengerAppRoot /home/u556180082/domains/ramimandirim.com.br/nodejs
