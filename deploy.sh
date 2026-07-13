@@ -46,4 +46,7 @@ npm run build
 echo "   - Reloading application with PM2 for zero-downtime..."
 pm2 reload rami-app || pm2 start server.js --name "rami-app"
 
-echo " Deployment complete!"
+# Fix permanente do preload-timestamp
+echo "[deploy] Corrigindo preload-timestamp..."
+~/fix-deploy.sh
+echo "[deploy] Deploy completo!"
