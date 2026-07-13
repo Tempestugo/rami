@@ -10,11 +10,11 @@ PassengerAppRoot /home/u556180082/domains/ramimandirim.com.br/nodejs
 PassengerBaseURI /
 PassengerNodejs /opt/alt/alt-nodejs18/root/bin/node
 PassengerAppType node
-PassengerStartupFile start.cjs
+PassengerStartupFile server.js
 # DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION END
 Options -Indexes
 PassengerRestartDir /home/u556180082/domains/ramimandirim.com.br/nodejs/tmp
-SetEnv NODE_OPTIONS "--require /home/u556180082/domains/ramimandirim.com.br/public_html/.builds/config/preload-timestamp.cjs"
+SetEnv NODE_OPTIONS "--require /home/u556180082/domains/ramimandirim.com.br/public_html/.builds/config/preload-timestamp.js"
 SetEnv LSNODE_CONSOLE_LOG console.log
 RewriteRule ^\.builds - [F,L]
 HTEOF
