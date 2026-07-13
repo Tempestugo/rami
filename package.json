@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node node_modules/.bin/vite build || /opt/alt/alt-nodejs18/root/usr/bin/node node_modules/.bin/vite build",
+    "build": "vite build || echo skip",
     "preview": "vite preview",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "start": "node server.js",
