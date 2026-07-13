@@ -38,14 +38,22 @@ function loadStreak() {
   } catch { return { count: 0, lastDate: null }; }
 }
 
-function updateStreak() {
+function updateStreak(persistFn) {
   const today = new Date().toDateString();
   const streak = loadStreak();
   if (streak.lastDate === today) return streak.count;
 
   const yesterday = new Date(Date.now() - 86400000).toDateString();
   const newCount = streak.lastDate === yesterday ? streak.count + 1 : 1;
-  localStorage.setItem('rami_streak', JSON.stringify({ count: newCount, lastDate: today }));
+  const newStreak = { count: newCount, lastDate: today };
+  localStorage.setItem('rami_streak', JSON.stringify(newStreak));
+  // Persiste no banco em background
+  if (persistFn) {
+    persistFn({
+      streak_count: newCount,
+      streak_date: new Date(today).toISOString().split('T')[0],
+    }).catch(() => {});
+  }
   return newCount;
 }
 
@@ -535,6 +543,8 @@ export default function Home({ onNavigate }) {
     catch { return {}; }
   });
   const setInitialPracticeType = useStore(state => state.setInitialPracticeType);
+  const persistActivity = useStore(state => state.persistActivity);
+  const user = useStore(state => state.user);
 
   // Carrega cartas conhecidas
   const loadCards = useCallback(() => {
@@ -551,7 +561,7 @@ export default function Home({ onNavigate }) {
 
   useEffect(() => {
     loadCards();
-    setStreak(updateStreak());
+    setStreak(updateStreak(persistActivity));
   }, [loadCards]);
 
   // Derivados
@@ -675,6 +685,8 @@ export default function Home({ onNavigate }) {
     const updated = { ...dailyDone, [dateStr + ':' + key]: true };
     setDailyDone(updated);
     localStorage.setItem('rami_daily_done', JSON.stringify(updated));
+    // Persiste no banco em background
+    persistActivity({ daily_done: updated }).catch(() => {});
   };
 
   const isDone = (key) => {

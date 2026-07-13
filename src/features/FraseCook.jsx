@@ -13,6 +13,18 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { phraseData } from '@/data/phraseData.js';
 import AutoTranslate from '../components/AutoTranslate';
+import useStore from '../store/useStore';
+
+// ─── Audio helper ─────────────────────────────────────────────────────────────
+function pronounceZh(text) {
+  if (!text || !window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.lang = 'zh-CN';
+  const v = window.speechSynthesis.getVoices().find(v => v.lang.startsWith('zh'));
+  if (v) utt.voice = v;
+  window.speechSynthesis.speak(utt);
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -123,6 +135,7 @@ export default function FraseCook({ initialHsk = 1, initialContext = null }) {
   const [round, setRound]           = useState(1);
   const shakeTimer = useRef(null);
   const hintTimer  = useRef(null);
+  const persistActivity = useStore(state => state.persistActivity);
 
   // ─── Inicializa rodada ──────────────────────────────────────────────────────
   const initRound = useCallback(() => {
@@ -141,7 +154,12 @@ export default function FraseCook({ initialHsk = 1, initialContext = null }) {
   // ─── Verifica conclusão ─────────────────────────────────────────────────────
   useEffect(() => {
     if (phrases.length > 0 && solved.size === phrases.length) {
-      setTimeout(() => setComplete(true), 700);
+      const roundScore = phrases.reduce((s, p) => s + getPhraseArr(p).length * 15, 0);
+      setTimeout(() => {
+        setComplete(true);
+        // Persiste a pontuação máxima acumulada no banco
+        persistActivity({ arena_score: score + roundScore }).catch(() => {});
+      }, 700);
     }
   }, [solved, phrases]);
 
@@ -298,11 +316,18 @@ export default function FraseCook({ initialHsk = 1, initialContext = null }) {
                 ))}
               </div>
 
-              {/* Tradução — aparece ao resolver ou com hint */}
-              <div className={`text-xs font-body tracking-wide transition-all duration-300 ${
+              {/* Tradução + botão de áudio — aparece ao resolver ou com hint */}
+              <div className={`flex items-center gap-2 text-xs font-body tracking-wide transition-all duration-300 ${
                 isSolved || isHinted ? 'text-ink-400 opacity-100' : 'opacity-0 h-0 overflow-hidden'
               }`}>
                 <AutoTranslate text={phrase.translation} />
+                {(isSolved || isHinted) && (
+                  <button
+                    onClick={() => pronounceZh(getPhraseStr(phrase))}
+                    className="w-6 h-6 shrink-0 rounded-full bg-white/10 border border-white/20 text-ink-300 hover:bg-white/20 hover:text-white flex items-center justify-center text-[10px] transition"
+                    title="Pronunciar frase"
+                  >🔊</button>
+                )}
               </div>
             </div>
           );

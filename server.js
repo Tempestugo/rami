@@ -1,55 +1,11 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { execSync, exec } from 'child_process';
 import crypto from 'crypto';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
-// === HOSTINGER AUTO-BUILD HOOK ===
-let isBuilding = false;
-let buildLog = '';
-
-if (process.env.NODE_ENV !== 'development' && !process.argv.includes('--no-build')) {
-  isBuilding = true;
-  console.log('📦 Iniciando deploy em segundo plano da Hostinger...');
-  buildLog = 'Iniciando deploy em segundo plano...\n';
-  
-  const deployCmd = [
-    'git pull',
-    '/opt/alt/alt-nodejs18/root/usr/bin/npm install --ignore-scripts',
-    'chmod +x node_modules/.bin/* node_modules/@esbuild/linux-x64/bin/esbuild || true',
-    'PATH="/opt/alt/alt-nodejs18/root/usr/bin:$PATH" npm run build',
-    'bash ~/fix-deploy.sh || true'
-  ].join(' && ');
-
-  const buildProcess = exec(deployCmd, {
-    cwd: __dirname,
-    env: { ...process.env, PATH: `/opt/alt/alt-nodejs18/root/usr/bin:${process.env.PATH}` }
-  });
-
-  buildProcess.stdout.on('data', (data) => {
-    buildLog += data;
-    console.log('[Deploy STDOUT]:', data.trim());
-  });
-
-  buildProcess.stderr.on('data', (data) => {
-    buildLog += data;
-    console.error('[Deploy STDERR]:', data.trim());
-  });
-
-  buildProcess.on('close', (code) => {
-    if (code === 0) {
-      console.log('✅ Deploy automático concluído com sucesso!');
-      buildLog += '\n✅ Deploy automático concluído com sucesso! Recarregando frontend...';
-      isBuilding = false;
-    } else {
-      console.error(`❌ Erro no deploy automático. Código de saída: ${code}`);
-      buildLog += `\n❌ Erro no deploy automático. Código de saída: ${code}`;
-    }
-  });
-}
 
 import graphHandler  from './api/graph/index.js';
 import charHandler   from './api/graph/character/[id].js';
@@ -172,37 +128,21 @@ function enrichCharacterData(char) {
 const app = express();
 app.use(express.json());
 
-// Middleware de atualização em segundo plano
+// --- CORS para produção ---
 app.use((req, res, next) => {
-  if (isBuilding) {
-    if (req.path.startsWith('/api/')) {
-      return res.status(503).json({ error: 'O sistema está sendo atualizado no servidor. Tente novamente em alguns segundos.', log: buildLog });
-    }
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    return res.status(503).send(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Atualizando Rami...</title>
-        <meta http-equiv="refresh" content="5">
-        <style>
-          body { background: #0a0a0c; color: #e2e8f0; font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-          .loader { border: 4px solid #1e1b18; border-top: 4px solid #fbbf24; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 20px; }
-          @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-          h1 { color: #fbbf24; font-size: 24px; margin-bottom: 8px; }
-          p { color: #9ca3af; font-size: 14px; margin-bottom: 24px; text-align: center; max-width: 500px; }
-          pre { background: #16161a; padding: 16px; border-radius: 8px; border: 1px solid #27272a; max-width: 80%; width: 600px; overflow: auto; font-size: 11px; max-height: 250px; text-align: left; font-family: monospace; white-space: pre-wrap; word-break: break-all; }
-        </style>
-      </head>
-      <body>
-        <div class="loader"></div>
-        <h1>Atualizando Rami Mandirim</h1>
-        <p>Baixando a última versão do GitHub e compilando o frontend automaticamente no servidor. A página irá recarregar assim que concluir...</p>
-        <pre>${buildLog}</pre>
-      </body>
-      </html>
-    `);
+  const allowed = [
+    'https://ramimandirim.com.br',
+    'https://www.ramimandirim.com.br',
+    'http://localhost:5180',
+    'http://localhost:3000',
+  ];
+  const origin = req.headers.origin;
+  if (allowed.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
   }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') return res.status(200).end();
   next();
 });
 
@@ -503,6 +443,144 @@ app.post('/api/deck', async (req, res) => {
   }
 });
 
+// --- SISTEMA DE TRADUÇÃO COM CACHE NO BANCO ---
+const MYMEMORY_ERROR_FRAGMENTS = [
+  'MYMEMORY WARNING',
+  'YOU USED ALL AVAILABLE FREE TRANSLATIONS',
+  'VISIT HTTPS://MYMEMORY',
+];
+function isMymemoryError(text) {
+  if (!text) return false;
+  const up = text.toUpperCase();
+  return MYMEMORY_ERROR_FRAGMENTS.some(f => up.includes(f));
+}
+
+async function fetchFromGoogleTranslate(text) {
+  const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=pt&dt=t&q=${encodeURIComponent(text)}`;
+  const res = await fetch(url);
+  const data = await res.json();
+  return data?.[0]?.[0]?.[0] || null;
+}
+
+async function fetchFromMymemory(text) {
+  const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|pt`;
+  const res = await fetch(url);
+  const data = await res.json();
+  const translated = data?.responseData?.translatedText;
+  if (translated && !isMymemoryError(translated)) return translated;
+  return null;
+}
+
+app.get('/api/translate', async (req, res) => {
+  const { text } = req.query;
+  if (!text) return res.status(400).json({ error: 'text is required' });
+
+  const trimmed = text.trim();
+
+  // 1. Consulta o cache no banco de dados
+  try {
+    const [rows] = await pool.query(
+      'SELECT translated FROM translations WHERE original = ? LIMIT 1',
+      [trimmed]
+    );
+    if (rows.length > 0) {
+      return res.json({ success: true, translated: rows[0].translated, cached: true });
+    }
+  } catch (err) {
+    console.error('Erro ao consultar cache de traduções:', err.message);
+  }
+
+  // 2. Tenta Google Translate (mais confiável e sem limites diários baixos)
+  let translated = null;
+  try {
+    translated = await fetchFromGoogleTranslate(trimmed);
+  } catch (err) {
+    console.error('Google Translate falhou:', err.message);
+  }
+
+  // 3. Fallback: MyMemory
+  if (!translated) {
+    try {
+      translated = await fetchFromMymemory(trimmed);
+    } catch (err) {
+      console.error('MyMemory falhou:', err.message);
+    }
+  }
+
+  // 4. Fallback final: retorna o original em inglês
+  if (!translated) {
+    return res.json({ success: true, translated: trimmed, cached: false });
+  }
+
+  // 5. Salva no banco para uso futuro
+  try {
+    await pool.query(
+      'INSERT IGNORE INTO translations (original, translated) VALUES (?, ?)',
+      [trimmed, translated]
+    );
+  } catch (err) {
+    console.error('Erro ao salvar tradução no cache:', err.message);
+  }
+
+  res.json({ success: true, translated, cached: false });
+});
+
+// --- ATIVIDADE DO USUÁRIO (streak, daily_done, grammar_done, arena_score) ---
+app.get('/api/activity/:userId', async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT streak_count, streak_date, daily_done, grammar_done, arena_score FROM user_activity WHERE user_id = ?`,
+      [req.params.userId]
+    );
+    if (rows.length === 0) {
+      return res.json({ success: true, data: { streak_count: 0, streak_date: null, daily_done: {}, grammar_done: {}, arena_score: 0 } });
+    }
+    const row = rows[0];
+    return res.json({
+      success: true,
+      data: {
+        streak_count: row.streak_count,
+        streak_date: row.streak_date,
+        daily_done: row.daily_done || {},
+        grammar_done: row.grammar_done || {},
+        arena_score: row.arena_score || 0,
+      }
+    });
+  } catch (err) {
+    console.error('Erro ao buscar activity:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/activity/:userId', async (req, res) => {
+  try {
+    const { streak_count, streak_date, daily_done, grammar_done, arena_score } = req.body;
+    await pool.query(
+      `INSERT INTO user_activity (user_id, streak_count, streak_date, daily_done, grammar_done, arena_score)
+       VALUES (?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         streak_count  = IF(VALUES(streak_count) > streak_count, VALUES(streak_count), streak_count),
+         streak_date   = VALUES(streak_date),
+         daily_done    = VALUES(daily_done),
+         grammar_done  = VALUES(grammar_done),
+         arena_score   = IF(VALUES(arena_score) > arena_score, VALUES(arena_score), arena_score),
+         updated_at    = CURRENT_TIMESTAMP`,
+      [
+        req.params.userId,
+        streak_count ?? 0,
+        streak_date ?? null,
+        JSON.stringify(daily_done ?? {}),
+        JSON.stringify(grammar_done ?? {}),
+        arena_score ?? 0,
+      ]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Erro ao salvar activity:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.use(express.static(path.join(__dirname, 'dist')));
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
@@ -569,6 +647,29 @@ async function initializeDatabase() {
         UNIQUE KEY uq_user_deck (user_id, slot)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS user_activity (
+        user_id      INT NOT NULL PRIMARY KEY,
+        streak_count INT NOT NULL DEFAULT 0,
+        streak_date  DATE NULL,
+        daily_done   JSON NULL,
+        grammar_done JSON NULL,
+        arena_score  INT NOT NULL DEFAULT 0,
+        updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS translations (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        original TEXT NOT NULL,
+        translated TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_original (original(255))
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
     console.log(' Tabelas do banco de dados inicializadas com sucesso.');
   } catch (err) {
     console.error(' Erro ao inicializar o banco de dados:', err.message);

@@ -123,10 +123,7 @@ export default function SiegeMode({ hskLevel = 1, waveSize = 5, onWaveComplete }
         if (pool.length === 0) throw new Error('Você ainda não tem caracteres na sua coleção. Adicione alguns primeiro!');
       } else if (configSource === 'weak') {
         pool = knownCards.filter(c => (c.srs_level || 1) <= 2);
-        if (pool.length === 0) {
-          pool = knownCards; // fallback se não houver fracos
-          if (pool.length === 0) throw new Error('Coleção vazia!');
-        }
+        if (pool.length === 0) throw new Error('Ótimo! Você não tem caracteres com baixa proficiência na sua coleção. Continue praticando!');
       } else if (configSource === 'missing') {
         const allHsk = hanziData.filter(h => h.hsk === configHsk);
         pool = allHsk.filter(h => !knownCharsSet.has(h.id)).map(h => ({
@@ -512,7 +509,22 @@ export default function SiegeMode({ hskLevel = 1, waveSize = 5, onWaveComplete }
           onClick={e => e.stopPropagation()}
         >
           <div className="text-center">
-            <p className="text-gold-300 font-display text-3xl font-bold leading-none">{activeChar}</p>
+            <div className="flex items-center justify-center gap-2">
+              <p className="text-gold-300 font-display text-3xl font-bold leading-none">{activeChar}</p>
+              <button
+                onClick={() => {
+                  if (!activeChar || !window.speechSynthesis) return;
+                  window.speechSynthesis.cancel();
+                  const utt = new SpeechSynthesisUtterance(activeChar);
+                  utt.lang = 'zh-CN';
+                  const v = window.speechSynthesis.getVoices().find(v => v.lang.startsWith('zh'));
+                  if (v) utt.voice = v;
+                  window.speechSynthesis.speak(utt);
+                }}
+                className="w-7 h-7 rounded-full bg-white/10 border border-white/20 text-ink-300 hover:bg-white/20 hover:text-white flex items-center justify-center text-xs transition"
+                title="Pronunciar"
+              >🔊</button>
+            </div>
             {activeHint && (
               <p className="text-ink-300 text-xs mt-1">{activeHint.pinyin} · {activeHint.meaning}</p>
             )}

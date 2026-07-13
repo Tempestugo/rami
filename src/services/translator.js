@@ -32,14 +32,14 @@ export async function translateEnToPt(text) {
     // Ignore localStorage errors
   }
 
-  // 3. Fetch from MyMemory API (Free, 10k words/day)
+  // 3. Fetch from our backend API translation service (which caches in DB)
   try {
-    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(trimmed)}&langpair=en|pt`;
+    const url = `/api/translate?text=${encodeURIComponent(trimmed)}`;
     const response = await fetch(url);
     const data = await response.json();
     
-    if (data && data.responseData && data.responseData.translatedText) {
-      const translated = data.responseData.translatedText;
+    if (data && data.success && data.translated) {
+      const translated = data.translated;
       
       // Save to caches
       translationCache.set(trimmed, translated);
@@ -50,7 +50,7 @@ export async function translateEnToPt(text) {
       return translated;
     }
   } catch (err) {
-    console.error('Translation failed (MyMemory):', err);
+    console.error('Translation failed (backend):', err);
   }
 
   // Fallback se a API falhar: retorna o original

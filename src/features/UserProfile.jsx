@@ -205,6 +205,7 @@ export default function UserProfile() {
     try { return JSON.parse(localStorage.getItem('rami_grammar_done') || '{}'); }
     catch { return {}; }
   });
+  const persistActivity = useStore(state => state.persistActivity);
 
   const loadCards = useCallback(() => {
     if (!user?.id) { setLoading(false); return; }
@@ -237,6 +238,8 @@ export default function UserProfile() {
     const updated = { ...completedGrammar, [title]: true };
     setCompletedGrammar(updated);
     localStorage.setItem('rami_grammar_done', JSON.stringify(updated));
+    // Persiste no banco em background
+    persistActivity({ grammar_done: updated }).catch(() => {});
   };
 
   const handleCharAdded = (char) => {

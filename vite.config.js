@@ -22,6 +22,7 @@ export default defineConfig({
       '/api/characters': 'http://127.0.0.1:3000',
       '/api/graph': 'http://127.0.0.1:3000',
       '/api/game': 'http://127.0.0.1:3000',
+      '/api/translate': 'http://127.0.0.1:3000',
     }
   },
   optimizeDeps: { 
