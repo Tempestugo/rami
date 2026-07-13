@@ -30,8 +30,8 @@ chmod +x node_modules/@esbuild/linux-x64/bin/esbuild 2>/dev/null || true
 echo "[deploy] Compilando frontend..."
 PATH="/opt/alt/alt-nodejs18/root/usr/bin:$PATH" $NPM run build
 
-# Executa script de fix adicional se existir
-if [ -f "$HOME/fix-deploy.sh" ]; then
+# Executa script de fix adicional se existir (e não for autobuild em background)
+if [ "$IS_AUTOBUILD" != "true" ] && [ -f "$HOME/fix-deploy.sh" ]; then
   echo "[deploy] Rodando fix-deploy.sh..."
   bash "$HOME/fix-deploy.sh" || true
 fi

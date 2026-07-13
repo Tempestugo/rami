@@ -143,7 +143,7 @@ if (shouldBuild) {
   
   const buildProcess = exec('bash hostinger-deploy.sh', {
     cwd: __dirname,
-    env: { ...process.env, PATH: `/opt/alt/alt-nodejs18/root/usr/bin:${process.env.PATH}` }
+    env: { ...process.env, IS_AUTOBUILD: 'true', PATH: `/opt/alt/alt-nodejs18/root/usr/bin:${process.env.PATH}` }
   });
 
   buildProcess.stdout.on('data', (data) => {
