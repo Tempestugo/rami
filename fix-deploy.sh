@@ -24,6 +24,18 @@ mkdir -p $PRELOAD_DIR
 echo "// preload" > $PRELOAD_DIR/preload-timestamp.cjs
 rm -f $PRELOAD_DIR/preload-timestamp.js
 
+echo "=== Corrigindo type:module ==="
+/opt/alt/alt-nodejs18/root/usr/bin/node -e "
+const fs=require('fs');
+const p='/home/u556180082/domains/ramimandirim.com.br/public_html/.builds/config/package.json';
+try {
+  let pkg=JSON.parse(fs.readFileSync(p,'utf8'));
+  delete pkg.type;
+  fs.writeFileSync(p,JSON.stringify(pkg,null,2));
+  console.log('OK: type:module removido');
+} catch(e) { console.log('Aviso:',e.message); }
+"
+
 echo "=== Restart ==="
 mkdir -p $NODEJS/tmp
 touch $NODEJS/tmp/restart.txt
