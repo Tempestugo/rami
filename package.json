@@ -5,12 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node node_modules/.bin/vite build || /opt/alt/alt-nodejs18/root/usr/bin/node node_modules/.bin/vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "start": "node server.js",
     "start:prod": "node server.js",
-    "postinstall": "node -e \"const fs=require('fs');const d='/home/u556180082/domains/ramimandirim.com.br/public_html/.builds/config';fs.mkdirSync(d,{recursive:true});fs.writeFileSync(d+'/preload-timestamp.cjs','// preload');try{fs.unlinkSync(d+'/preload-timestamp.js')}catch(e){}; const p=d+'/package.json';try{let pkg=JSON.parse(fs.readFileSync(p,'utf8'));delete pkg.type;fs.writeFileSync(p,JSON.stringify(pkg,null,2))}catch(e){}\""
+    "postinstall": "node -e \"const fs=require('fs');const d='/home/u556180082/domains/ramimandirim.com.br/public_html/.builds/config';fs.mkdirSync(d,{recursive:true});fs.writeFileSync(d+'/preload-timestamp.cjs','// preload');try{fs.unlinkSync(d+'/preload-timestamp.js')}catch(e){};try{let pkg=JSON.parse(fs.readFileSync(d+'/package.json','utf8'));delete pkg.type;pkg.scripts=pkg.scripts||{};pkg.scripts.build='echo skip';fs.writeFileSync(d+'/package.json',JSON.stringify(pkg,null,2))}catch(e){}\""
   },
   "dependencies": {
     "axios": "^1.6.8",
