@@ -548,8 +548,9 @@ export default function Home({ onNavigate }) {
 
   // Carrega cartas conhecidas
   const loadCards = useCallback(() => {
+    if (!user?.id) { setLoading(false); return; }
     setLoading(true);
-    fetch('/api/cards/1')
+    fetch('/api/cards/' + user.id)
       .then(r => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
@@ -557,7 +558,7 @@ export default function Home({ onNavigate }) {
       .then(data => { if (data.success) setKnownCards(data.data); })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     loadCards();
@@ -712,7 +713,7 @@ export default function Home({ onNavigate }) {
       const res = await fetch('/api/cards', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ char, srs_level: 1 })
+        body: JSON.stringify({ user_id: user?.id, char, srs_level: 1 })
       });
       const data = await res.json();
       if (data.success) {

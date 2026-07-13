@@ -125,7 +125,7 @@ function AddCharModal({ char, onClose, onAdded }) {
       const res = await fetch('/api/cards', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, char }),
+        body: JSON.stringify({ user_id: user.id, char }),
       });
       const data = await res.json();
       if (data.success) { onAdded(char); onClose(); }
@@ -140,7 +140,7 @@ function AddCharModal({ char, onClose, onAdded }) {
       const res = await fetch('/api/cards', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, char }),
+        body: JSON.stringify({ user_id: user.id, char }),
       });
       const data = await res.json();
       if (data.success) { onAdded(char); onClose(); }

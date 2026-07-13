@@ -469,10 +469,11 @@ app.post('/api/progress', async (req, res) => {
         completed_at TIMESTAMP DEFAULT NOW()
       )
     `);
-    const { lesson_id, sentence_id, xp, user_id = 1 } = req.body;
+    const { lesson_id, sentence_id, xp, user_id, userId } = req.body;
+    const targetUserId = user_id || userId || 1;
     await pool.query(
       `INSERT INTO progress (user_id, lesson_id, sentence_id, xp) VALUES (?, ?, ?, ?)`,
-      [user_id, lesson_id, sentence_id, xp]
+      [targetUserId, lesson_id, sentence_id, xp]
     );
     res.json({ success: true });
   } catch (err) {
@@ -525,7 +526,8 @@ app.get('/api/cards/:userId/status/:char', async (req, res) => {
 
 app.post('/api/cards', async (req, res) => {
   try {
-    const { user_id = 1, char, srs_level, vote } = req.body;
+    const { user_id, userId, char, srs_level, vote } = req.body;
+    const targetUserId = user_id || userId || 1;
     if (!char) {
       return res.status(400).json({ error: 'Character (char) is required' });
     }
@@ -533,7 +535,7 @@ app.post('/api/cards', async (req, res) => {
     if (vote) {
       const [rows] = await pool.query(
         `SELECT srs_level, practice_count FROM user_cards WHERE user_id = ? AND \`char\` = ?`,
-        [user_id, char]
+        [targetUserId, char]
       );
       if (rows.length > 0) {
         let currentLevel = rows[0].srs_level || 1;
@@ -552,14 +554,14 @@ app.post('/api/cards', async (req, res) => {
 
         await pool.query(
           `UPDATE user_cards SET srs_level = ?, practice_count = ? WHERE user_id = ? AND \`char\` = ?`,
-          [currentLevel, practiceCount, user_id, char]
+          [currentLevel, practiceCount, targetUserId, char]
         );
       } else {
         const initialLevel = 1;
         const initialCount = vote === 'remembered' ? 1 : 0;
         await pool.query(
           `INSERT INTO user_cards (user_id, \`char\`, srs_level, practice_count) VALUES (?, ?, ?, ?)`,
-          [user_id, char, initialLevel, initialCount]
+          [targetUserId, char, initialLevel, initialCount]
         );
       }
     } else {
@@ -568,7 +570,7 @@ app.post('/api/cards', async (req, res) => {
         `INSERT INTO user_cards (user_id, \`char\`, srs_level, practice_count) 
          VALUES (?, ?, ?, 0) 
          ON DUPLICATE KEY UPDATE srs_level = VALUES(srs_level), practice_count = 0`,
-        [user_id, char, targetLevel]
+        [targetUserId, char, targetLevel]
       );
     }
     res.json({ success: true });
@@ -579,13 +581,14 @@ app.post('/api/cards', async (req, res) => {
 
 app.delete('/api/cards', async (req, res) => {
   try {
-    const { user_id = 1, char } = req.body;
+    const { user_id, userId, char } = req.body;
+    const targetUserId = user_id || userId || 1;
     if (!char) {
       return res.status(400).json({ error: 'Character (char) is required' });
     }
     await pool.query(
       `DELETE FROM user_cards WHERE user_id = ? AND \`char\` = ?`,
-      [user_id, char]
+      [targetUserId, char]
     );
     res.json({ success: true });
   } catch (err) {
@@ -631,11 +634,12 @@ app.get('/api/deck/:userId', async (req, res) => {
 
 app.post('/api/deck', async (req, res) => {
   try {
-    const { user_id = 1, slots } = req.body;
+    const { user_id, userId, slots } = req.body;
+    const targetUserId = user_id || userId || 1;
     for (const s of slots) {
       await pool.query(
         `INSERT INTO user_deck (user_id, \`char\`, slot) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE \`char\` = VALUES(\`char\`)`,
-        [user_id, s.char, s.slot]
+        [targetUserId, s.char, s.slot]
       );
     }
     res.json({ success: true });
@@ -830,6 +834,14 @@ async function initializeDatabase() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
+
+    // Migração de tabela users para adicionar coluna created_at
+    try {
+      await pool.query(`ALTER TABLE users ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
+      console.log(' Coluna created_at adicionada com sucesso a users.');
+    } catch (e) {
+      // Ignora erro se a coluna já existe
+    }
 
     // Inserir usuário base (ID 1) se não existir (Mantendo o progresso atual)
     const defaultHash = hashPassword('123456');

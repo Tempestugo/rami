@@ -15,6 +15,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import SiegeMode from './SiegeMode.jsx';
 import FraseCook from './FraseCook.jsx';
+import useStore from '../store/useStore';
 
 // ─── Sub-componentes internos ─────────────────────────────────────────────────
 
@@ -87,6 +88,7 @@ const STATE = {
 };
 
 export default function LessonManager({ sentenceId, onComplete }) {
+  const user = useStore(state => state.user);
   const [status, setStatus] = useState(STATE.LOADING);
   const [lesson, setLesson] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -138,7 +140,12 @@ export default function LessonManager({ sentenceId, onComplete }) {
       await fetch('/api/progress', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lesson_id: lessonId, sentence_id: sentenceId, xp: totalXp }),
+        body: JSON.stringify({ 
+          user_id: user?.id,
+          lesson_id: lessonId, 
+          sentence_id: sentenceId, 
+          xp: totalXp 
+        }),
       });
     } catch (err) {
       console.warn('Falha ao salvar progresso:', err.message);
