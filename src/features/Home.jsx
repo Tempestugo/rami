@@ -1116,6 +1116,14 @@ export default function Home({ onNavigate }) {
           isCompleted={isDoneForDate('grammar', selectedDate)}
           onComplete={() => {
             markDone('grammar');
+            try {
+              const grammarDone = JSON.parse(localStorage.getItem('rami_grammar_done') || '{}');
+              grammarDone[selectedGrammarPoint.title] = true;
+              localStorage.setItem('rami_grammar_done', JSON.stringify(grammarDone));
+              persistActivity({ grammar_done: grammarDone }).catch(() => {});
+            } catch (err) {
+              console.error('Erro ao salvar ponto de gramática:', err);
+            }
           }}
         />
       )}
