@@ -134,8 +134,7 @@ let isBuilding = false;
 let buildLog = '';
 let buildError = null;
 
-const noBuildFlag = process.argv.includes('--no-build');
-const shouldBuild = !noBuildFlag && (process.env.NODE_ENV === 'production' || process.env.PORT);
+const shouldBuild = false;
 
 if (shouldBuild) {
   isBuilding = true;
