@@ -3,6 +3,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
 import { exec } from 'child_process';
+import { hanziData } from './api/_data/hanziData.js';
+import { grammarData } from './api/_data/grammarData.js';
+import { phraseData } from './api/_data/phraseData.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
@@ -15,7 +18,6 @@ import attackHandler from './attack.js';          // BUG FIX: era './api/game/lo
 import siegeHandler  from './api/game/siege.js';  // NOVO
 import { lessonHandler, listSentences } from './api/game/lessonGenerator.js';
 import pool, { dbReady } from './db.js';
-import { hanziData } from './api/_data/hanziData.js';
 
 // Pre-build a map for O(1) character lookups
 const hanziMap = new Map(hanziData.map(h => [h.id, h]));
@@ -128,6 +130,22 @@ function enrichCharacterData(char) {
 
 const app = express();
 app.use(express.json());
+
+// Serve data files
+app.get('/api/_data/hanziData.js', (req, res) => {
+  res.setHeader('Content-Type', 'application/javascript');
+  res.send(`export const hanziData = ${JSON.stringify(hanziData, null, 2)};`);
+});
+
+app.get('/api/_data/grammarData.js', (req, res) => {
+  res.setHeader('Content-Type', 'application/javascript');
+  res.send(`export const grammarData = ${JSON.stringify(grammarData, null, 2)};`);
+});
+
+app.get('/api/_data/phraseData.js', (req, res) => {
+  res.setHeader('Content-Type', 'application/javascript');
+  res.send(`export const phraseData = ${JSON.stringify(phraseData, null, 2)};`);
+});
 
 // --- SISTEMA DE AUTO-BUILD EM SEGUNDO PLANO (Prevenção de Timeout 503 na Hostinger) ---
 let isBuilding = false;

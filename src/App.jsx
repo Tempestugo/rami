@@ -24,28 +24,31 @@ import CardCollection from './features/CardCollection.jsx';
 import FraseCook from './features/FraseCook';
 import UserProfile from './features/UserProfile.jsx';
 import AdminPanel from './features/AdminPanel.jsx';
+import ConversationModule from './features/ConversationModule.jsx';
 
 const MODES = {
-  HOME:    'home',
-  LEARN:   'learn',
-  STUDY:   'study',
-  FRASE:   'frase',
-  SIEGE:   'siege',
-  CARDS:   'cards', // Novo modo
-  WARFARE: 'warfare',
-  USER:    'user',
-  ADMIN:   'admin',
+  HOME:         'home',
+  LEARN:        'learn',
+  STUDY:        'study',
+  FRASE:        'frase',
+  SIEGE:        'siege',
+  CARDS:        'cards',
+  WARFARE:      'warfare',
+  CONVERSATION: 'conversation',
+  USER:         'user',
+  ADMIN:        'admin',
 };
 
 const NAV = [
-  { key: MODES.HOME,    label: 'Início',   icon: '' },
-  { key: MODES.LEARN,   label: 'Aprender', icon: '️' },
-  { key: MODES.CARDS,   label: 'Cartas',   icon: '' }, // Novo item
-  { key: MODES.STUDY,   label: 'Explorer', icon: '️' },
-  { key: MODES.FRASE,   label: 'Frases',   icon: '' },
-  { key: MODES.SIEGE,   label: 'Cerco',    icon: '' },
-  { key: MODES.WARFARE, label: 'Arena',    icon: '️' },
-  { key: MODES.USER,    label: 'Usuário',  icon: '' },
+  { key: MODES.HOME,         label: 'Início',        icon: '' },
+  { key: MODES.LEARN,        label: 'Aprender',       icon: '️' },
+  { key: MODES.CARDS,        label: 'Cartas',          icon: '' },
+  { key: MODES.CONVERSATION, label: 'Conversação',    icon: '💬' },
+  { key: MODES.STUDY,        label: 'Explorer',       icon: '️' },
+  { key: MODES.FRASE,        label: 'Frases',         icon: '' },
+  { key: MODES.SIEGE,        label: 'Cerco',          icon: '' },
+  { key: MODES.WARFARE,      label: 'Arena',          icon: '️' },
+  { key: MODES.USER,         label: 'Usuário',         icon: '' },
 ];
 
 export default function App() {
@@ -62,15 +65,16 @@ export default function App() {
   }
 
   const headerTitle = {
-    [MODES.HOME]:    ['Rami',        ' Painel de Estudos'],
-    [MODES.LEARN]:   ['Aprender',    '️ Prática com Frases'],
-    [MODES.STUDY]:   ['Rami',        '漢字 Graph Explorer'],
-    [MODES.FRASE]:   ['文 FraseCook', 'Monte frases em chinês'],
-    [MODES.SIEGE]:   ['Modo Cerco',  ' Defenda desenhando'],
-    [MODES.CARDS]:   ['Minhas Cartas',' Coleção de Ideogramas'],
-    [MODES.WARFARE]: ['Lumi Warfare','️ Campo de Batalha'],
-    [MODES.USER]:    ['Usuário',     ' Perfil e Configurações'],
-    [MODES.ADMIN]:   ['Admin',       ' Painel de Controle'],
+    [MODES.HOME]:         ['Rami',            ' Painel de Estudos'],
+    [MODES.LEARN]:        ['Aprender',        '️ Prática com Frases'],
+    [MODES.CONVERSATION]: ['Conversação',    ' Prática de Conversação'],
+    [MODES.STUDY]:        ['Rami',            '漢字 Graph Explorer'],
+    [MODES.FRASE]:        ['文 FraseCook',    'Monte frases em chinês'],
+    [MODES.SIEGE]:        ['Modo Cerco',      ' Defenda desenhando'],
+    [MODES.CARDS]:        ['Minhas Cartas',    ' Coleção de Ideogramas'],
+    [MODES.WARFARE]:      ['Lumi Warfare',    '️ Campo de Batalha'],
+    [MODES.USER]:         ['Usuário',         ' Perfil e Configurações'],
+    [MODES.ADMIN]:        ['Admin',           ' Painel de Controle'],
   };
 
   const [title, subtitle] = headerTitle[mode] || ['Rami', ''];
@@ -95,15 +99,16 @@ export default function App() {
               onClick={() => setMode(key)}
               className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all border ${
                 mode === key
-                  ? key === MODES.HOME    ? 'bg-vermillion-500/15 border-vermillion-500/60 text-vermillion-300'
-                  : key === MODES.CARDS   ? 'bg-jade-500/15 border-jade-400 text-jade-300'
-                  : key === MODES.LEARN   ? 'bg-azure-500/15 border-azure-400 text-azure-300'
-                  : key === MODES.STUDY   ? 'bg-white/10 border-white/30 text-white'
-                  : key === MODES.FRASE   ? 'bg-gold-500/10 border-gold-400 text-gold-300'
-                  : key === MODES.SIEGE   ? 'bg-gold-500/10 border-gold-400 text-gold-300'
-                  : key === MODES.USER    ? 'bg-vermillion-500/15 border-vermillion-500/60 text-vermillion-300'
-                  : key === MODES.ADMIN   ? 'bg-azure-500/15 border-azure-400 text-azure-300'
-                  :                         'bg-vermillion-500/10 border-vermillion-500 text-vermillion-400'
+                  ? key === MODES.HOME         ? 'bg-vermillion-500/15 border-vermillion-500/60 text-vermillion-300'
+                  : key === MODES.CARDS        ? 'bg-jade-500/15 border-jade-400 text-jade-300'
+                  : key === MODES.LEARN        ? 'bg-azure-500/15 border-azure-400 text-azure-300'
+                  : key === MODES.CONVERSATION ? 'bg-pink-500/15 border-pink-400 text-pink-300'
+                  : key === MODES.STUDY        ? 'bg-white/10 border-white/30 text-white'
+                  : key === MODES.FRASE        ? 'bg-gold-500/10 border-gold-400 text-gold-300'
+                  : key === MODES.SIEGE        ? 'bg-gold-500/10 border-gold-400 text-gold-300'
+                  : key === MODES.USER         ? 'bg-vermillion-500/15 border-vermillion-500/60 text-vermillion-300'
+                  : key === MODES.ADMIN        ? 'bg-azure-500/15 border-azure-400 text-azure-300'
+                  :                              'bg-vermillion-500/10 border-vermillion-500 text-vermillion-400'
                   : 'bg-white/5 border-white/10 text-ink-400 hover:bg-white/8 hover:text-ink-200'
               }`}
             >
@@ -163,6 +168,12 @@ export default function App() {
       {mode === MODES.WARFARE && (
         <div className="flex-1 relative overflow-hidden bg-ink-950 flex items-center justify-center p-8">
           <LumiWarfare />
+        </div>
+      )}
+
+      {mode === MODES.CONVERSATION && (
+        <div className="flex-1 overflow-hidden">
+          <ConversationModule />
         </div>
       )}
     </div>

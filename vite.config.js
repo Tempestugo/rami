@@ -12,7 +12,14 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api': 'http://127.0.0.1:3000',
+      '/api': {
+        target: 'http://127.0.0.1:3000',
+        bypass: (req) => {
+          if (req.url.startsWith('/api/_data')) {
+            return req.url;
+          }
+        }
+      }
     }
   },
   optimizeDeps: { 
