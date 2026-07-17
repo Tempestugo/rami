@@ -25,6 +25,7 @@ import FraseCook from './features/FraseCook';
 import UserProfile from './features/UserProfile.jsx';
 import AdminPanel from './features/AdminPanel.jsx';
 import ConversationModule from './features/ConversationModule.jsx';
+import ImperioGame from './features/ImperioGame.jsx';
 
 const MODES = {
   HOME:         'home',
@@ -35,6 +36,7 @@ const MODES = {
   CARDS:        'cards',
   WARFARE:      'warfare',
   CONVERSATION: 'conversation',
+  IMPERIO:      'imperio',
   USER:         'user',
   ADMIN:        'admin',
 };
@@ -45,6 +47,7 @@ const NAV = [
   { key: MODES.CARDS,        label: 'Cartas',          icon: '' },
   { key: MODES.CONVERSATION, label: 'Conversação',    icon: '💬' },
   { key: MODES.STUDY,        label: 'Explorer',       icon: '️' },
+  { key: MODES.IMPERIO,      label: 'Império',        icon: '🗺️' },
   { key: MODES.FRASE,        label: 'Frases',         icon: '' },
   { key: MODES.SIEGE,        label: 'Cerco',          icon: '' },
   { key: MODES.WARFARE,      label: 'Arena',          icon: '️' },
@@ -73,6 +76,7 @@ export default function App() {
     [MODES.SIEGE]:        ['Modo Cerco',      ' Defenda desenhando'],
     [MODES.CARDS]:        ['Minhas Cartas',    ' Coleção de Ideogramas'],
     [MODES.WARFARE]:      ['Lumi Warfare',    '️ Campo de Batalha'],
+    [MODES.IMPERIO]:      ['Império Hanzi',   '🗺️ Conquiste a China'],
     [MODES.USER]:         ['Usuário',         ' Perfil e Configurações'],
     [MODES.ADMIN]:        ['Admin',           ' Painel de Controle'],
   };
@@ -106,6 +110,7 @@ export default function App() {
                   : key === MODES.STUDY        ? 'bg-white/10 border-white/30 text-white'
                   : key === MODES.FRASE        ? 'bg-gold-500/10 border-gold-400 text-gold-300'
                   : key === MODES.SIEGE        ? 'bg-gold-500/10 border-gold-400 text-gold-300'
+                  : key === MODES.IMPERIO      ? 'bg-emerald-500/15 border-emerald-400 text-emerald-300'
                   : key === MODES.USER         ? 'bg-vermillion-500/15 border-vermillion-500/60 text-vermillion-300'
                   : key === MODES.ADMIN        ? 'bg-azure-500/15 border-azure-400 text-azure-300'
                   :                              'bg-vermillion-500/10 border-vermillion-500 text-vermillion-400'
@@ -174,6 +179,12 @@ export default function App() {
       {mode === MODES.CONVERSATION && (
         <div className="flex-1 overflow-hidden">
           <ConversationModule />
+        </div>
+      )}
+
+      {mode === MODES.IMPERIO && (
+        <div className="flex-1 overflow-hidden flex">
+          <ImperioGame />
         </div>
       )}
     </div>
