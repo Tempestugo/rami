@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      '@data': path.resolve(__dirname, './api/_data'),
+      '@/data': path.resolve(__dirname, './api/_data'),
       '@': path.resolve(__dirname, './src'),
     },
   },
