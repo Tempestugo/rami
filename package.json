@@ -16,6 +16,7 @@
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.19",
     "axios": "^1.6.8",
+    "cn-atlas": "^0.1.2",
     "express": "^4.22.2",
     "fuse.js": "^7.5.0",
     "hanzi-writer": "^3.7.3",

@@ -5,13 +5,13 @@ import crypto from 'crypto';
 import { exec } from 'child_process';
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname  = path.dirname(__filename);
+const __dirname = path.dirname(__filename);
 
-import graphHandler  from './api/graph/index.js';
-import charHandler   from './api/graph/character/[id].js';
+import graphHandler from './api/graph/index.js';
+import charHandler from './api/graph/character/[id].js';
 import phraseHandler from './api/phrases/build.js';
 import attackHandler from './attack.js';          // BUG FIX: era './api/game/logic.js' (não existe)
-import siegeHandler  from './api/game/siege.js';  // NOVO
+import siegeHandler from './api/game/siege.js';  // NOVO
 import { lessonHandler, listSentences } from './api/game/lessonGenerator.js';
 import pool, { dbReady } from './db.js';
 import { hanziData } from './api/_data/hanziData.js';
@@ -138,7 +138,7 @@ const shouldBuild = false;
 if (shouldBuild) {
   isBuilding = true;
   console.log('[Autobuild] Iniciando build do frontend em segundo plano...');
-  
+
   const buildProcess = exec('bash hostinger-deploy.sh', {
     cwd: __dirname,
     env: { ...process.env, IS_AUTOBUILD: 'true', PATH: `/opt/alt/alt-nodejs18/root/usr/bin:${process.env.PATH}` }
@@ -171,7 +171,7 @@ app.use((req, res, next) => {
     if (req.path === '/api/deploy-status') {
       return res.json({ status: 'building', log: buildLog });
     }
-    
+
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     return res.send(`
       <!DOCTYPE html>
@@ -355,7 +355,7 @@ app.post('/api/auth/register', async (req, res) => {
   try {
     const { username, password } = req.body;
     if (!username || !password) return res.status(400).json({ error: 'Usuário e senha obrigatórios.' });
-    
+
     const hash = hashPassword(password);
     const [result] = await pool.query(
       'INSERT INTO users (username, password_hash) VALUES (?, ?)',
@@ -392,7 +392,7 @@ app.post('/api/auth/login', async (req, res) => {
 
 app.get('/api/graph', graphHandler);
 app.get('/api/graph/character/:id', (req, res) => {
-  req.query    = req.query || {};
+  req.query = req.query || {};
   req.query.id = req.params.id;
   charHandler(req, res);
 });
@@ -405,19 +405,19 @@ app.post('/api/phrases/validate', async (req, res) => {
     if (!phrase || phrase.length < 2) {
       return res.json({ valid: false, reason: 'Frase muito curta.' });
     }
-    
+
     // Validar usando as sentenças do currículo
     const sentences = await listSentences();
-    
+
     // Verifica se a frase exata existe como uma palavra nas sentenças
     const isWord = sentences.some(s => s.words && s.words.some(w => w.hanzi === phrase));
     // Ou se existe como um fragmento válido dentro de uma sentença maior
     const isFragment = sentences.some(s => s.hanzi && s.hanzi.includes(phrase));
-    
+
     if (isWord || isFragment) {
       return res.json({ valid: true });
     }
-    
+
     return res.json({ valid: false, reason: 'Frase não encontrada no currículo atual.' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -443,7 +443,7 @@ app.get('/api/characters', (req, res) => {
 });
 
 app.post('/api/game/attack', attackHandler);
-app.get('/api/game/siege',   siegeHandler);
+app.get('/api/game/siege', siegeHandler);
 
 // --- Sistema de Lições e Progressão ---
 app.get('/api/lesson/:id', lessonHandler);
@@ -509,11 +509,11 @@ app.get('/api/cards/:userId/status/:char', async (req, res) => {
       [req.params.userId, req.params.char]
     );
     if (rows.length > 0) {
-      res.json({ 
-        success: true, 
-        known: true, 
-        srs_level: rows[0].srs_level, 
-        practice_count: rows[0].practice_count || 0 
+      res.json({
+        success: true,
+        known: true,
+        srs_level: rows[0].srs_level,
+        practice_count: rows[0].practice_count || 0
       });
     } else {
       res.json({ success: true, known: false, srs_level: null, practice_count: 0 });
@@ -815,6 +815,7 @@ app.get('/api/admin/users', async (req, res) => {
 });
 
 app.use(express.static(path.join(__dirname, 'dist')));
+app.use('/api/_data', express.static(path.join(__dirname, 'dist', 'api', '_data')));
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
@@ -823,7 +824,7 @@ async function initializeDatabase() {
   await dbReady;
   try {
     console.log(' Inicializando tabelas do banco de dados...');
-    
+
     // Tabela de Usuários
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
@@ -870,7 +871,7 @@ async function initializeDatabase() {
         UNIQUE KEY uq_user_card (user_id, \`char\`)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
-    
+
     // Migração de tabela existente
     try {
       await pool.query(`ALTER TABLE user_cards ADD COLUMN practice_count TINYINT NOT NULL DEFAULT 0`);
