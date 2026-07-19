@@ -815,7 +815,6 @@ app.get('/api/admin/users', async (req, res) => {
 });
 
 app.use(express.static(path.join(__dirname, 'dist')));
-app.use('/api/_data', express.static(path.join(__dirname, 'dist', 'api', '_data')));
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });

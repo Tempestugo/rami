@@ -27,7 +27,7 @@ echo "   - NPM version: $(npm -v)"
 
 # --- Code Update ---
 echo "   - Navigating to project directory..."
-cd ~/domains/lightsteelblue-cobra-503372.hostingersite.com/nodejs
+cd ~/domains/ramimandirim.com.br/nodejs
 
 echo "   - Pulling latest changes from Git..."
 git pull
